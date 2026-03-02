@@ -77,7 +77,8 @@ public static class SpriteHelper
                 var bounds = FindBounds(frameImg);
                 if (bounds.Size.X > 5 && bounds.Size.Y > 5)
                 {
-                    jumpTextures.Add(SmartPad(frameImg, bounds, 240, 240));
+                    // Scale jump animation by 0.65x so it matches the normal character size
+                    jumpTextures.Add(SmartPad(frameImg, bounds, 240, 240, 0.65f));
                 }
             }
 
@@ -244,9 +245,9 @@ public static class SpriteHelper
     }
 
     /// <summary>
-    /// Cắt và căn chỉnh sprite vào frame cố định
+    /// Cắt và căn chỉnh sprite vào frame cố định, cho phép đổi tỷ lệ với customScale
     /// </summary>
-    private static ImageTexture SmartPad(Image source, Rect2I rect, int outW, int outH)
+    private static ImageTexture SmartPad(Image source, Rect2I rect, int outW, int outH, float customScale = 1.0f)
     {
         int bw = rect.Size.X;
         int bh = rect.Size.Y;
@@ -268,14 +269,21 @@ public static class SpriteHelper
         int targetMaxHeight = outH - 20;
         int targetMaxWidth = outW - 20;
 
+        float scaleToFit = 1.0f;
         if (bw > targetMaxWidth || bh > targetMaxHeight)
         {
             float scaleX = (float)targetMaxWidth / bw;
             float scaleY = (float)targetMaxHeight / bh;
-            float scale = Math.Min(scaleX, scaleY);
+            scaleToFit = Math.Min(scaleX, scaleY);
+        }
 
-            int newW = Math.Max(1, (int)(bw * scale));
-            int newH = Math.Max(1, (int)(bh * scale));
+        // Áp dụng scale bằng customScale kết hợp với scaleToFit
+        float finalScale = scaleToFit * customScale;
+
+        if (Math.Abs(finalScale - 1.0f) > 0.01f)
+        {
+            int newW = Math.Max(1, (int)(bw * finalScale));
+            int newH = Math.Max(1, (int)(bh * finalScale));
 
             var interp = (bw > 600 || bh > 600) ? Image.Interpolation.Bilinear : Image.Interpolation.Nearest;
             crop.Resize(newW, newH, interp);
