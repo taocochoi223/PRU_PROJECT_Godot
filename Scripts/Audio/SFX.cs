@@ -136,6 +136,97 @@ public static class SFX
         return stream;
     }
 
+    public static AudioStreamWav GetAxeThrowSound()
+    {
+        if (_cache.ContainsKey("AxeThrow")) return _cache["AxeThrow"];
+        // Tiếng quăng rìu: Vút (Whoosh) + Kèm tiếng kim loại xoay
+        var stream = GenerateDSP(0.4f, (t) => {
+            float env = Math.Max(0, 1.0f - (t / 0.4f));
+            // Whoosh freq
+            float freq = Mathf.Lerp(400f, 100f, t / 0.4f);
+            float osc = Mathf.Sin(t * freq * Mathf.Pi * 2f);
+            // Spin rattle (FM)
+            float rattle = Mathf.Sin((t * 200f + Mathf.Sin(t * 50f) * 10f) * Mathf.Pi * 2f) * 0.3f;
+            return (osc * 0.6f + rattle) * env;
+        });
+        _cache["AxeThrow"] = stream;
+        return stream;
+    }
+
+    public static AudioStreamWav GetSpinSound()
+    {
+        if (_cache.ContainsKey("Spin")) return _cache["Spin"];
+        // Tiếng xoay rìu liên tục: Tiếng lốc xoáy (Cyclone)
+        var stream = GenerateDSP(0.6f, (t) => {
+            float env = t < 0.1f ? t/0.1f : Math.Max(0, 1.0f - (t/0.6f));
+            float noise = (float)(_rand.NextDouble() * 2.0 - 1.0);
+            // Low rumble + filtered noise
+            float rumble = Mathf.Sin(t * 60f * Mathf.Pi * 2f) * 0.5f;
+            return (rumble + noise * 0.4f) * env;
+        });
+        _cache["Spin"] = stream;
+        return stream;
+    }
+
+    public static AudioStreamWav GetUltimateSound()
+    {
+        // Sử dụng key mới để bypass cache cũ
+        if (_cache.ContainsKey("Ultimate_V2")) return _cache["Ultimate_V2"];
+
+        // Tiếng Nộ V2: Tiếng hét năng lượng + Riser (Gồng lực)
+        var stream = GenerateDSP(1.2f, (t) => {
+            float env = t < 0.1f ? t/0.1f : Math.Max(0, 1.0f - (t/1.2f));
+            
+            // 1. Riser effect: Tần số quét từ thấp lên cao cực mạnh
+            float riserFreq = Mathf.Lerp(60f, 600f, t / 1.0f);
+            float riser = Mathf.Sin(t * riserFreq * Mathf.Pi * 2f) * 0.4f;
+            
+            // 2. Battle Roar (Hét): Noise kết hợp với dải tần trung
+            float roar = (float)(_rand.NextDouble() * 2.0 - 1.0) * 0.3f;
+            float pulse = Mathf.Sin(t * 120f * Mathf.Pi * 2f) * 0.5f; // Rung động cơ thể
+            
+            // 3. Sub-charge: Âm trầm gầm gừ
+            float sub = Mathf.Sin(t * 40f * Mathf.Pi * 2f) * 0.6f;
+
+            return (riser + roar + pulse + sub) * env;
+        });
+        _cache["Ultimate_V2"] = stream;
+        return stream;
+    }
+
+    public static AudioStreamWav GetEarthImpactSound()
+    {
+        if (_cache.ContainsKey("EarthImpact_V2")) return _cache["EarthImpact_V2"];
+
+        // Tiếng Nện Đất V2: VỤ NỔ ĐỊA CHẤN (Earth-Shattering Explosion)
+        var stream = GenerateDSP(1.5f, (t) => {
+            // Impact Envelope: Nổ cực mạnh ở 0.0s
+            float envImpact = Math.Max(0, 1.0f - (t / 0.15f));
+            // Rumble Envelope: Gầm rú kéo dài sau nổ
+            float envRumble = Math.Max(0, 1.0f - (t / 1.5f));
+            
+            // 1. THE CRACK (Tiếng vỡ): Noise cực mạnh dải cao
+            float crack = (float)(_rand.NextDouble() * 2.0 - 1.0) * envImpact * 1.5f;
+            
+            // 2. THE THUMP (Lực va chạm): Siêu trầm 30-60Hz
+            float bassFreq = Mathf.Lerp(80f, 30f, t / 0.2f);
+            float thump = Mathf.Sin(t * bassFreq * Mathf.Pi * 2f) * envImpact * 2.0f;
+            
+            // 3. THE EARTHQUAKE (Rung chấn): Rumble kéo dài
+            float earthquake = (float)(_rand.NextDouble() * 2.0 - 1.0) * 0.5f * envRumble;
+            
+            // 4. DEBRIS (Đất đá văng): Noise lạo xạo sau nổ
+            float debris = 0;
+            if (t > 0.1f && t < 0.6f) {
+                debris = (float)(_rand.NextDouble() * 2.0 - 1.0) * 0.3f * (1.0f - (t-0.1f)/0.5f);
+            }
+
+            return (crack + thump + earthquake + debris) * 0.8f;
+        });
+        _cache["EarthImpact_V2"] = stream;
+        return stream;
+    }
+
     // ─── DSP Core Engine: Phân Tích & Biến Đổi Âm Thanh Vòm ──────────
     private static AudioStreamWav GenerateDSP(float duration, Func<float, float> dspFunc)
     {

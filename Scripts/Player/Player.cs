@@ -96,8 +96,11 @@ public partial class Player : CharacterBody2D
         _sfxPlayer = new AudioStreamPlayer();
         _sfxPlayer.VolumeDb = -5f;
         AddChild(_sfxPlayer);
-        
-        // Kênh đặc biệt riêng cho Bước chạy (để chém/nhảy không ngắt tiếng bước bị giật cục)
+
+        // Pre-load skill assets to prevent gameplay lag
+        PreparePortraitTexture();
+        PrepareAxeTexture();
+
         _sfxStepPlayer = new AudioStreamPlayer();
         _sfxStepPlayer.VolumeDb = -12f;
         AddChild(_sfxStepPlayer);
@@ -206,7 +209,7 @@ public partial class Player : CharacterBody2D
         // === HORIZONTAL MOVEMENT - Di chuyển ngang với acceleration ===
         float direction = _inCutscene ? _cutsceneDirection : Input.GetAxis("move_left", "move_right");
         
-        if (!_isAttacking)
+        if (!_isAttacking || _isSpinning)
         {
             float currentAccel;
             float currentDecel;
@@ -281,12 +284,15 @@ public partial class Player : CharacterBody2D
 
         // Update animation (Truyền delta vào để quản lí tiếng động bước chân)
         UpdateAnimation(direction, dt);
+
+        // Handle skills
+        HandleSkills(dt);
     }
 
     private void UpdateAnimation(float direction, float dt)
     {
         if (_isDead) return;
-        if (_isAttacking) return;
+        if (_isAttacking || _isSpinning) return;
         if (_isHurt)
         {
             PlayAnimationIfNotPlaying("hurt");

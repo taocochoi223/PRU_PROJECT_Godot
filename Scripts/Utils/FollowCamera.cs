@@ -13,6 +13,8 @@ public partial class FollowCamera : Camera2D
     [Export] public float MinY = 0;
     [Export] public float MaxY = 648;
 
+    private float _shakeIntensity = 0f;
+    private float _shakeTimer = 0f;
     private Node2D _target;
 
     public override void _Ready()
@@ -30,6 +32,8 @@ public partial class FollowCamera : Camera2D
 
     public override void _Process(double delta)
     {
+        float dt = (float)delta;
+
         if (_target == null || _target.IsQueuedForDeletion())
         {
             // Find player
@@ -38,16 +42,36 @@ public partial class FollowCamera : Camera2D
             {
                 _target = p;
             }
-            return;
         }
 
         // Smooth follow
-        Vector2 targetPos = _target.GlobalPosition + FollowOffset;
+        if (_target != null)
+        {
+            Vector2 targetPos = _target.GlobalPosition + FollowOffset;
+            targetPos.X = Mathf.Clamp(targetPos.X, MinX, MaxX);
+            targetPos.Y = Mathf.Clamp(targetPos.Y, MinY, MaxY);
+            GlobalPosition = GlobalPosition.Lerp(targetPos, SmoothSpeed * dt);
+        }
 
-        // Clamp to level bounds
-        targetPos.X = Mathf.Clamp(targetPos.X, MinX, MaxX);
-        targetPos.Y = Mathf.Clamp(targetPos.Y, MinY, MaxY);
+        // Handle Shake
+        if (_shakeTimer > 0)
+        {
+            _shakeTimer -= dt;
+            Offset = new Vector2(
+                (float)(GD.RandRange(-1.0, 1.0) * _shakeIntensity),
+                (float)(GD.RandRange(-1.0, 1.0) * _shakeIntensity)
+            );
 
-        GlobalPosition = GlobalPosition.Lerp(targetPos, SmoothSpeed * (float)delta);
+            if (_shakeTimer <= 0)
+            {
+                Offset = Vector2.Zero;
+            }
+        }
+    }
+
+    public void Shake(float duration, float intensity)
+    {
+        _shakeTimer = duration;
+        _shakeIntensity = intensity;
     }
 }
