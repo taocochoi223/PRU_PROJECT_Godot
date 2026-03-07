@@ -435,28 +435,38 @@ public partial class Player : CharacterBody2D
         if (_isDead || _isHurt) return;
 
         _health -= damage;
-        _isHurt = true;
-        _comboIndex = 0;      // Reset combo when hurt
-        _comboActive = false;
-        _hurtTimer.Start();
         GameManager.Instance.PlayerHealth = _health;
-
         EmitSignal(SignalName.HealthChanged, _health, GameManager.Instance.MaxPlayerHealth);
 
         if (_health <= 0)
         {
             Die();
+            return;
         }
-        else
+
+        // --- CƠ CHẾ SUPER ARMOR (KHÁNG HIỆU ỨNG KHI ĐANG TUNG CHIÊU) ---
+        // Khi đang xuất Skill hoặc combo, vẫn nhận sát thương nháy đỏ nhưng KHÔNG bị Ngắt Chiêu hay hất văng
+        if (_isAttacking || _isSpinning) 
         {
-            _animatedSprite.Play("hurt");
-            // Red flash effect
             _animatedSprite.Modulate = new Color(1, 0.3f, 0.3f);
-            var tween = CreateTween();
-            tween.TweenProperty(_animatedSprite, "modulate", Colors.White, 0.4f);
-            // Knockback
-            Velocity = new Vector2(_animatedSprite.FlipH ? 200 : -200, -150);
+            var tweenArmor = CreateTween();
+            tweenArmor.TweenProperty(_animatedSprite, "modulate", Colors.White, 0.4f);
+            return; // Thoát ngay, bảo vệ vòng đời chiêu thức đang múa
         }
+
+        // Bị dính đòn bình thường (Bị ngắt)
+        _isHurt = true;
+        _comboIndex = 0;      // Reset combo khi bị đánh trúng
+        _comboActive = false;
+        _hurtTimer.Start();
+        
+        _animatedSprite.Play("hurt");
+        // Red flash effect
+        _animatedSprite.Modulate = new Color(1, 0.3f, 0.3f);
+        var tween = CreateTween();
+        tween.TweenProperty(_animatedSprite, "modulate", Colors.White, 0.4f);
+        // Knockback (Hất tung)
+        Velocity = new Vector2(_animatedSprite.FlipH ? 200 : -200, -150);
     }
 
     public void Heal(int amount)

@@ -10,9 +10,17 @@ public partial class Player : CharacterBody2D
     private float _skill2Timer = 0f;
     private float _skill3Timer = 0f;
 
-    private const float Skill1Cooldown = 2.0f;
-    private const float Skill2Cooldown = 5.0f;
-    private const float Skill3Cooldown = 15.0f;
+    private const float Skill1Cooldown = 4.0f;
+    private const float Skill2Cooldown = 6.0f;
+    private const float Skill3Cooldown = 20.0f;
+
+    // --- Biến lưu trữ UI Chiêu thức ---
+    private CanvasLayer _skillPanelLayer;
+    private TextureRect[] _skillIcons = new TextureRect[3];
+    private TextureRect[] _cooldownOverlays = new TextureRect[3];
+    private Label[] _cooldownLabels = new Label[3];
+    private static Rect2I _unifiedSkillBounds = new Rect2I();
+    private static bool _skillBoundsCalculated = false;
 
     private bool _isSpinning = false;
     private static Texture2D _cachedAxeTexture = null;
@@ -49,25 +57,198 @@ public partial class Player : CharacterBody2D
         _cachedAxeTexture = ImageTexture.CreateFromImage(img);
     }
 
+    private Texture2D GetCleanSkillIcon(string[] paths, int index)
+    {
+        if (!_skillBoundsCalculated)
+        {
+            int gMinX = 99999, gMinY = 99999, gMaxX = 0, gMaxY = 0;
+            int imgW = 0, imgH = 0;
+            foreach (var p in paths) {
+                var t = GD.Load<Texture2D>(p);
+                if (t == null) continue;
+                var testImg = t.GetImage();
+                imgW = testImg.GetWidth(); imgH = testImg.GetHeight();
+                testImg.Decompress(); testImg.Convert(Image.Format.Rgba8);
+                Color cB = testImg.GetPixel(0, 0); 
+                for (int y = 0; y < testImg.GetHeight(); y++) {
+                    for (int x = 0; x < testImg.GetWidth(); x++) {
+                        Color col = testImg.GetPixel(x, y);
+                        bool isG = col.G > 0.4f && col.G > col.R * 1.1f && col.G > col.B * 1.1f;
+                        float diff = Mathf.Sqrt(Mathf.Pow(col.R - cB.R, 2) + Mathf.Pow(col.G - cB.G, 2) + Mathf.Pow(col.B - cB.B, 2));
+                        if (!(isG || diff < 0.15f) && col.A > 0.1f) {
+                            if (x < gMinX) gMinX = x; if (x > gMaxX) gMaxX = x;
+                            if (y < gMinY) gMinY = y; if (y > gMaxY) gMaxY = y;
+                        }
+                    }
+                }
+            }
+            if (gMaxX > gMinX && gMaxY > gMinY) {
+                int centerX = imgW / 2;
+                int centerY = imgH / 2;
+                int distLeft = centerX - gMinX;
+                int distRight = gMaxX - centerX;
+                int distTop = centerY - gMinY;
+                int distBottom = gMaxY - centerY;
+                int maxDist = Mathf.Max(Mathf.Max(distLeft, distRight), Mathf.Max(distTop, distBottom));
+                int maxD = maxDist * 2;
+                maxD = (int)(maxD * 1.05f); // Padding vừa chạm
+                _unifiedSkillBounds = new Rect2I(centerX - maxD/2, centerY - maxD/2, maxD, maxD);
+            }
+            _skillBoundsCalculated = true;
+        }
+
+        var tex = GD.Load<Texture2D>(paths[index]);
+        if (tex == null) return GD.Load<Texture2D>("res://icon.svg");
+
+        Image img = tex.GetImage();
+        if (img == null) return tex;
+        img.Decompress(); 
+        img.Convert(Image.Format.Rgba8);
+
+        Color bgColor = img.GetPixel(0, 0); 
+        for (int y = 0; y < img.GetHeight(); y++) {
+            for (int x = 0; x < img.GetWidth(); x++) {
+                Color p = img.GetPixel(x, y);
+                bool isGreen = p.G > 0.4f && p.G > p.R * 1.1f && p.G > p.B * 1.1f;
+                float diff = Mathf.Sqrt(Mathf.Pow(p.R - bgColor.R, 2) + Mathf.Pow(p.G - bgColor.G, 2) + Mathf.Pow(p.B - bgColor.B, 2));
+                
+                if (isGreen || diff < 0.15f) {
+                    img.SetPixel(x, y, new Color(1, 1, 1, 0));
+                }
+            }
+        }
+        
+        if (_unifiedSkillBounds.Size.X > 5) {
+            return SpriteHelper.SmartPad(img, _unifiedSkillBounds, 256, 256); 
+        }
+        return ImageTexture.CreateFromImage(img);
+    }
+
+    private void SetupSkillUI()
+    {
+        _skillPanelLayer = new CanvasLayer();
+        _skillPanelLayer.Layer = 5; // Hiển thị đè lên trên nhân vật
+        AddChild(_skillPanelLayer);
+
+        // Khung Margin bám Toàn màn hình để tự căn chỉnh góc
+        var margin = new MarginContainer();
+        margin.SetAnchorsPreset(Control.LayoutPreset.TopWide); // Đổi thành TopWide: Chỉ bám nóc màn hình y chang khung Margin của Thanh máu (HUD.tscn)
+        margin.AddThemeConstantOverride("margin_right", 20); // Cách mép phải 20px
+        margin.AddThemeConstantOverride("margin_top", -40); // BÙ TRỪ KHOẢNG RỖNG: Dùng thông số Âm để giật ngược toàn bộ khung kỹ năng lên trên cao, đâm xuyên lên thanh máu
+        _skillPanelLayer.AddChild(margin);
+
+        // HBoxContainer tự dồn các nút về góc trên phải
+        var hbox = new HBoxContainer();
+        hbox.Alignment = BoxContainer.AlignmentMode.End;
+        hbox.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin; // Bám chặt lên TOP màn hình
+        hbox.AddThemeConstantOverride("separation", 15); // Thu hẹp khoảng cách kéo sát các nút lại gần nhau
+        margin.AddChild(hbox);
+
+        string[] paths = {
+            "res://Assets/Sprites/Player/Skill_1.png",
+            "res://Assets/Sprites/Player/Skill_2.png",
+            "res://Assets/Sprites/Player/Skill_3.png"
+        };
+        
+        string[] hotkeys = { "1", "2", "3" };
+        
+        for (int i = 0; i < 3; i++)
+        {
+            var btnHolder = new CenterContainer(); // CenterContainer ép chặt tâm tọa độ của các thành phần bên trong nó với nhau
+            btnHolder.CustomMinimumSize = new Vector2(160, 160); // Phóng to Nút thêm 100% theo yêu cầu
+            hbox.AddChild(btnHolder);
+
+            // Tải ảnh tự động Tách nền rác và Crop phần rìa thừa (Lấy đúng tỷ lệ kỹ năng)
+            var tex = GetCleanSkillIcon(paths, i);
+
+            _skillIcons[i] = new TextureRect {
+                Texture = tex,
+                CustomMinimumSize = new Vector2(160, 160), // Kích thước tăng gấp đôi
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, 
+                TextureFilter = Control.TextureFilterEnum.Linear // Bật chế độ Tinh chỉnh Viền làm mịn rực rỡ HD
+            };
+            btnHolder.AddChild(_skillIcons[i]);
+
+            // Bỏ Text phím nóng 1 2 3 vì trên ảnh gốc của User đã được tự vẽ số
+
+            // Lớp màn lọc tối (Bật lên khi bị hồi chiêu) - Dùng lại Ảnh xịn để có viền bo tròn hoàn hảo
+            _cooldownOverlays[i] = new TextureRect {
+                Texture = tex,
+                CustomMinimumSize = new Vector2(160, 160),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                TextureFilter = Control.TextureFilterEnum.Linear,
+                Modulate = new Color(0, 0, 0, 0.75f), // Đen mờ 75%
+                Visible = false
+            };
+            btnHolder.AddChild(_cooldownOverlays[i]);
+
+            // Chữ hiển thị số đếm lùi thời gian hồi (Nằm giữa nút)
+            _cooldownLabels[i] = new Label {
+                Text = "",
+                CustomMinimumSize = new Vector2(160, 160),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visible = false
+            };
+            _cooldownLabels[i].AddThemeColorOverride("font_color", new Color(1, 1, 1));
+            _cooldownLabels[i].AddThemeConstantOverride("outline_size", 8);
+            _cooldownLabels[i].AddThemeColorOverride("font_outline_color", new Color(0, 0, 0));
+            _cooldownLabels[i].AddThemeFontSizeOverride("font_size", 56); // Cỡ chữ phóng to cùng với diện tích Nút
+            btnHolder.AddChild(_cooldownLabels[i]);
+        }
+    }
+
+    private void UpdateSkillUICooldowns()
+    {
+        if (_skillPanelLayer == null) return;
+        float[] timers = { _skill1Timer, _skill2Timer, _skill3Timer };
+        
+        for (int i = 0; i < 3; i++)
+        {
+            if (timers[i] > 0)
+            {
+                _cooldownOverlays[i].Visible = true;
+                _cooldownLabels[i].Visible = true;
+                // Làm tròn lên thành giây chẵn
+                _cooldownLabels[i].Text = Mathf.CeilToInt(timers[i]).ToString();
+            }
+            else
+            {
+                _cooldownOverlays[i].Visible = false;
+                _cooldownLabels[i].Visible = false;
+            }
+        }
+    }
+
     private void HandleSkills(float dt)
     {
+        if (_skillPanelLayer == null) SetupSkillUI();
+
         if (_skill1Timer > 0) _skill1Timer -= dt;
         if (_skill2Timer > 0) _skill2Timer -= dt;
         if (_skill3Timer > 0) _skill3Timer -= dt;
+        
+        UpdateSkillUICooldowns();
 
         if (_inCutscene || _isDead || _isHurt) return;
 
-        // Use IsActionJustPressed for all skills. 
-        // Fallback to direct key check but only on 'Just Pressed' logic via a timer or better, use GD.Print to warn
-        if (Input.IsActionJustPressed("skill1") || (Input.IsKeyPressed(Key.Key1) && _skill1Timer <= 0 && !_isAttacking))
+        // Lắng nghe phím nhấn từ mọi nguồn (tay cầm, phím cứng, phím ảo)
+        bool press1 = Input.IsActionJustPressed("skill1") || Input.IsKeyPressed(Key.Key1);
+        bool press2 = Input.IsActionJustPressed("skill2") || Input.IsKeyPressed(Key.Key2);
+        bool press3 = Input.IsActionJustPressed("skill3") || Input.IsKeyPressed(Key.Key3);
+
+        // Đảm bảo chặn mọi chiêu nếu nhân vật đang xuất chiêu (-_isAttacking) HOẶC bộ định giờ (Timer) chưa về 0
+        if (press1 && _skill1Timer <= 0 && !_isAttacking)
         {
             ExecuteAxeThrow();
         }
-        else if (Input.IsActionJustPressed("skill2") || (Input.IsKeyPressed(Key.Key2) && _skill2Timer <= 0 && !_isAttacking))
+        else if (press2 && _skill2Timer <= 0 && !_isAttacking)
         {
             ExecuteWhirlwind();
         }
-        else if (Input.IsActionJustPressed("skill3") || (Input.IsKeyPressed(Key.Key3) && _skill3Timer <= 0 && !_isAttacking))
+        else if (press3 && _skill3Timer <= 0 && !_isAttacking)
         {
             ExecuteEarthBreaker();
         }
@@ -113,10 +294,15 @@ public partial class Player : CharacterBody2D
     {
         _skill2Timer = Skill2Cooldown;
         _isSpinning = true;
-        // _isAttacking = false (để nhân vật có thể di chuyển/nhảy)
         
-        float duration = 1.6f;
+        // CÁC THÔNG SỐ CÓ THỂ TÙY CHỈNH DỄ DÀNG:
+        float duration = 3.0f;       // 1. Thời gian xoay (Ví dụ: 3 giây)
+        float rotationSpeed = 25.0f; // 2. Tốc độ xoay (Giá trị càng lớn xoay càng nhanh)
+        float damageRadius = 130f;   // 3. Bán kính sát thương (Thu gọn lại để tụ lực hơn)
+        float damageInterval = 0.2f; // Mỗi 0.2 giây gây sát thương 1 lần
+        
         float elapsed = 0f;
+        float damageTimer = 0f;
         
         _sfxPlayer.Stream = SFX.GetSpinSound();
         _sfxPlayer.Play();
@@ -124,43 +310,56 @@ public partial class Player : CharacterBody2D
         // 1. Lưu lại trạng thái gốc chính xác
         Vector2 baseScale = _animatedSprite.Scale;
 
-        // 2. Hiệu ứng vòng xoáy (VFX chém vàng - ÉP DẸT CHIỀU NGANG)
+        // 2. Hiệu ứng vòng xoáy (Lốc xoáy phong thần sắc lẹm)
         var spinVFX = new SpinVFX();
-        spinVFX.Scale = new Vector2(1.3f, 0.35f); // Ép dẹt trục Y để thành vòng xoay ngang 3D
-        spinVFX.Position = new Vector2(0, -25); // Nâng lên ngang tầm tay cầm rìu
+        // Để nguyên tỷ lệ thực 1:1, phần tính toán phối cảnh 3D sẽ do hàm _Draw tự xử lý 
+        // Điều này giúp cơn bão cao sừng sững mà không bị "lùn" do lệnh kéo dẹt Scale cũ.
+        spinVFX.Scale = new Vector2(1.0f, 1.0f); 
+        spinVFX.Position = new Vector2(0, -25); // Canh ở giữa nhân vật làm trọng tâm
         AddChild(spinVFX);
 
         while (elapsed < duration && !_isDead && !_isHurt)
         {
             float dt = 0.04f;
             elapsed += dt;
+            damageTimer += dt;
             
-            float spinSpeed = 32.0f; // Xoay cực nhanh
-            float angle = elapsed * spinSpeed;
+            float angle = elapsed * rotationSpeed;
             
-            // --- NHÂN VẬT: Tự xoay (Flip) kết hợp Anim Tấn công ---
+            // --- NHÂN VẬT: Xoay vòng quanh trục dọc (Đứng thẳng múa rìu) ---
             _animatedSprite.Scale = baseScale; 
-            _animatedSprite.FlipH = Mathf.Cos(angle) < 0;
-            _animatedSprite.Play("attack1");
+            _animatedSprite.Rotation = 0; // Luôn đứng thẳng, KHÔNG lộn nhào
+            _animatedSprite.FlipH = Mathf.Cos(angle) < 0; // Lật liên tục siêu tốc để tạo ảo giác xoay 360 độ quanh trục Y
+            _animatedSprite.Play("attack1"); // Anim múa rìu
 
-            // Cập nhật góc xoay cho hiệu ứng đồng bộ
+            // Cập nhật góc xoay cho hiệu ứng Vệt chém
             spinVFX.RotationAngle = angle;
 
-            // Tạo bóng ma tốc độ để tăng cảm giác xoay tít mù
+            // Tạo bóng ma tốc độ 
             if (Time.GetTicksMsec() % 100 < 50) CreateGhostEffect();
 
-            // Gây sát thương diện rộng xung quanh
-            var bodies = _attackArea.GetOverlappingBodies();
-            foreach (var body in bodies)
+            // --- CƠ CHẾ GÂY SÁT THƯƠNG LIÊN TỤC THEO BÁN KÍNH ---
+            if (damageTimer >= damageInterval)
             {
-                if (body.IsInGroup("enemies") && body.HasMethod("TakeDamage"))
-                    body.Call("TakeDamage", (int)(AttackDamage * 0.5f));
+                damageTimer = 0f; // Chỉ chém mỗi 0.2s để không tính damage quá dày
+                var enemies = GetTree().GetNodesInGroup("enemies");
+                foreach (Node2D e in enemies)
+                {
+                    if (GlobalPosition.DistanceTo(e.GlobalPosition) <= damageRadius)
+                    {
+                        if (e.HasMethod("TakeDamage"))
+                        {
+                            // Sát thương liên tục mỗi nhát chém nhỏ
+                            e.Call("TakeDamage", (int)(AttackDamage * 0.4f)); 
+                        }
+                    }
+                }
             }
             
             await ToSignal(GetTree().CreateTimer(dt), "timeout");
         }
 
-        // Reset về đúng trạng thái ban đầu
+        // Reset về đúng trạng thái ban đầu sau khi xoay xong
         _animatedSprite.Scale = baseScale;
         _animatedSprite.Rotation = 0;
         _animatedSprite.FlipH = _facingDirection < 0;
@@ -433,36 +632,82 @@ public partial class SpinVFX : Node2D
 
     public override void _Draw()
     {
-        // Màu sắc THÉP SẮT BÉN (Trắng - Xám - Bạc)
-        Color coreColor = new Color(1.0f, 1.0f, 1.0f, 1.0f);     // Trắng tinh khiết (Lõi lưỡi rìu)
-        Color bladeColor = new Color(0.8f, 0.85f, 0.9f, 0.7f);  // Xanh bạc (Ánh thép)
-        Color trailColor = new Color(0.5f, 0.5f, 0.5f, 0.25f);  // Xám mờ (Gió/Bụi)
+        // VÒNG XOÁY PHONG THẦN (CẤU TRÚC XOẮN ỐC HELIX CHUẨN LỐC BÃO)
+        Color coreColor = new Color(1.0f, 1.0f, 1.0f, 1.0f);     
+        Color bladeColor = new Color(0.6f, 0.9f, 1.0f, 0.8f);    
+        Color trailColor = new Color(0.6f, 0.85f, 0.95f, 0.2f);  
         
-        // Vẽ 4 tầng vệt chém chồng lên nhau
-        for (int i = 0; i < 4; i++)
+        // Trục 3D (X: to, Y: dẹt để tạo góc nhìn chéo từ trên xuống mặt đất)
+        float scaleX = 1.6f;
+        float scaleY = 0.40f; 
+        
+        // --- 1. LUỒNG GIÓ XOẮN DỌC TỪ DƯỚI LÊN TẠO HÌNH CỘT BÃO ---
+        int numCurrents = 5; 
+        for (int i = 0; i < numCurrents; i++)
         {
-            float radius = 40f + i * 11f;
-            float arcLen = 1.8f; 
+            float offset = (Mathf.Pi * 2f / numCurrents) * i;
+            int segments = 24;
+            Vector2[] points = new Vector2[segments];
+            float totalTwist = Mathf.Pi * 2.8f; // Xoắn 1.4 vòng quanh người
             
-            for (int side = 0; side < 2; side++)
+            for (int p = 0; p < segments; p++)
             {
-                float offset = side * Mathf.Pi;
-                float currentAngle = RotationAngle + offset;
+                float t = (float)p / (segments - 1); 
+                // Chiều cao bão: Từ chân (Y=45) vươn lên tới ngực/vai (Y=-45)
+                float currentY = 45f - t * 90f; 
+                // Bán kính phễu (Radius): Dưới chân gom nhỏ (10), trên tỏa to (60)
+                float radius = 10f + t * 50f; 
+                float angle = (RotationAngle * 1.5f) + offset + (t * totalTwist);
                 
-                // 1. Vẽ luồng gió (Wind trail) - Xám mờ ảo
-                DrawArc(Vector2.Zero, radius, currentAngle, currentAngle + arcLen, 16, trailColor, 14f);
+                float x = Mathf.Cos(angle) * radius * scaleX;
+                float z = Mathf.Sin(angle) * radius * scaleY; 
+                points[p] = new Vector2(x, currentY + z); // Z depth được cộng trực tiếp vào Y
+            }
+            
+            // Vẽ đa tuyến vuốt mượt: Đầu và đuôi nhỏ mờ, giữa to rõ ràng
+            for (int p = 0; p < segments - 1; p++)
+            {
+                float t = (float)p / (segments - 1);
+                float alpha = Mathf.Clamp(Mathf.Sin(t * Mathf.Pi) * 1.2f, 0, 1);
                 
-                // 2. Vẽ ánh thép (Steel flash) - Bạc
-                DrawArc(Vector2.Zero, radius, currentAngle, currentAngle + arcLen * 0.7f, 24, bladeColor, 4f);
+                Color cTrail = new Color(trailColor.R, trailColor.G, trailColor.B, trailColor.A * alpha);
+                Color cBlade = new Color(bladeColor.R, bladeColor.G, bladeColor.B, bladeColor.A * alpha);
+                Color cCore  = new Color(coreColor.R, coreColor.G, coreColor.B, coreColor.A * alpha);
+
+                DrawLine(points[p], points[p+1], cTrail, 15f * alpha);
+                DrawLine(points[p], points[p+1], cBlade, 4f * alpha);
+                DrawLine(points[p], points[p+1], cCore, 1.5f * alpha);
+            }
+        }
+
+        // --- 2. NHÁT CHÉM KHÔNG KHÍ NẰM NGANG XUNG QUANH ---
+        for (int i = 0; i < 3; i++)
+        {
+            float yPos = 30f - i * 30f + Mathf.Sin(RotationAngle + i) * 15f;
+            float radius = 25f + i * 15f;
+            float startAngle = RotationAngle * 2.5f + (Mathf.Pi / 1.5f * i);
+            float arcLen = 1.6f; 
+            
+            int arcSegs = 10;
+            for (int p = 0; p < arcSegs - 1; p++)
+            {
+                float t1 = (float)p / (arcSegs - 1);
+                float t2 = (float)(p + 1) / (arcSegs - 1);
                 
-                // 3. Vẽ LÕI SẮC LẸM (Razor Sharp Core) - Trắng sáng siêu mỏng
-                DrawArc(Vector2.Zero, radius, currentAngle + arcLen * 0.5f, currentAngle + arcLen * 0.65f, 32, coreColor, 1.5f);
+                float a1 = startAngle + t1 * arcLen;
+                float a2 = startAngle + t2 * arcLen;
                 
-                // 4. Các tia chớp thép nhỏ xẹt ra
-                if (i % 2 == 0) {
-                    float extraAngle = currentAngle + 0.4f;
-                    DrawArc(Vector2.Zero, radius + 4, extraAngle, extraAngle + 0.25f, 8, coreColor, 1.0f);
-                }
+                Vector2 p1 = new Vector2(Mathf.Cos(a1) * radius * scaleX, yPos + Mathf.Sin(a1) * radius * scaleY);
+                Vector2 p2 = new Vector2(Mathf.Cos(a2) * radius * scaleX, yPos + Mathf.Sin(a2) * radius * scaleY);
+                
+                float alpha = Mathf.Sin(t1 * Mathf.Pi);
+                Color cTrail = new Color(trailColor.R, trailColor.G, trailColor.B, trailColor.A * alpha);
+                Color cBlade = new Color(bladeColor.R, bladeColor.G, bladeColor.B, bladeColor.A * alpha);
+                Color cCore  = new Color(coreColor.R, coreColor.G, coreColor.B, coreColor.A * alpha);
+
+                DrawLine(p1, p2, cTrail, 8f * alpha);
+                DrawLine(p1, p2, cBlade, 2f * alpha);
+                DrawLine(p1, p2, cCore, 1f * alpha);
             }
         }
     }

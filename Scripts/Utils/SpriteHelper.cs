@@ -247,7 +247,7 @@ public static class SpriteHelper
     /// <summary>
     /// Cắt và căn chỉnh sprite vào frame cố định, cho phép đổi tỷ lệ với customScale
     /// </summary>
-    private static ImageTexture SmartPad(Image source, Rect2I rect, int outW, int outH, float customScale = 1.0f)
+    public static ImageTexture SmartPad(Image source, Rect2I rect, int outW, int outH, float customScale = 1.0f)
     {
         int bw = rect.Size.X;
         int bh = rect.Size.Y;
@@ -353,7 +353,7 @@ public static class SpriteHelper
     /// <summary>
     /// Tìm bounding box của pixels visible trong một image
     /// </summary>
-    private static Rect2I FindBounds(Image img)
+    public static Rect2I FindBounds(Image img)
     {
         int w = img.GetWidth();
         int h = img.GetHeight();
@@ -514,14 +514,14 @@ public static class SpriteHelper
         return ImageTexture.CreateFromImage(crop);
     }
 
-    private static Image LoadAndCleanImage(string path)
+    public static Image LoadAndCleanImage(string path)
     {
         var tex = GD.Load<Texture2D>(path); if (tex == null) return null;
         var img = tex.GetImage(); img.Decompress(); img.Convert(Image.Format.Rgba8);
         RemoveBackground(img); return img;
     }
 
-    private static void RemoveBackground(Image img)
+    public static void RemoveBackground(Image img)
     {
         int w = img.GetWidth(), h = img.GetHeight();
 
