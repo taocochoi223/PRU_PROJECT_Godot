@@ -1,34 +1,17 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene format=3 uid="uid://bd5bhfb6dulfv"]
 
 [ext_resource type="Script" path="res://Scripts/UI/Intro.cs" id="1_intro"]
-[ext_resource type="Shader" path="res://Assets/Shaders/chroma_key.gdshader" id="2_shader"]
-[ext_resource type="Texture2D" path="res://Assets/Sprites/Enemies/eagle.png" id="3_eagle"]
-[ext_resource type="Texture2D" path="res://Assets/Sprites/Player/thach_sanh_run.png" id="4_thachsanh"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_eagle"]
-shader = ExtResource("2_shader")
-shader_parameter/chroma_key = Color(0, 1, 0, 1)
-shader_parameter/tolerance = 0.4
-shader_parameter/transition = 0.08
-shader_parameter/spill_reduction = 0.5
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_thach"]
-shader = ExtResource("2_shader")
-shader_parameter/chroma_key = Color(0, 1, 0, 1)
-shader_parameter/tolerance = 0.4
-shader_parameter/transition = 0.08
-shader_parameter/spill_reduction = 0.5
+[ext_resource type="AudioStream" path="res://Assets/sound/intro.mp3" id="2_audio"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_story"]
-font_size = 42
-font_color = Color(1, 1, 1, 1)
-outline_size = 12
+font_size = 32
+outline_size = 10
 outline_color = Color(0, 0, 0, 1)
-shadow_size = 8
+shadow_size = 6
 shadow_color = Color(0, 0, 0, 0.8)
-shadow_offset = Vector2(4, 4)
+shadow_offset = Vector2(3, 3)
 
-[node name="Intro" type="Control"]
+[node name="Intro" type="Control" unique_id=751292253]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -37,45 +20,29 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_intro")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="BackgroundRect" type="TextureRect" parent="." unique_id=1131136337]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.05, 0.05, 0.1, 1)
+expand_mode = 1
+stretch_mode = 6
 
-[node name="StoryLabel" type="Label" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=732155737]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -500.0
-offset_top = -280.0
-offset_right = 500.0
-offset_bottom = -20.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "Đang tải câu chuyện..."
-label_settings = SubResource("LabelSettings_story")
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
+color = Color(0, 0, 0, 0.235294)
 
-[node name="CharacterContainer" type="Node2D" parent="."]
+[node name="CharacterContainer" type="Node2D" parent="." unique_id=189221459]
 position = Vector2(0, 500)
 
-[node name="Eagle" type="Sprite2D" parent="CharacterContainer"]
-material = SubResource("ShaderMaterial_eagle")
-texture = ExtResource("3_eagle")
-hframes = 2
-vframes = 2
-
-[node name="ThachSanh" type="Sprite2D" parent="CharacterContainer"]
-material = SubResource("ShaderMaterial_thach")
-texture = ExtResource("4_thachsanh")
-hframes = 3
-vframes = 2
+[node name="IntroAudio" type="AudioStreamPlayer" parent="."]
+unique_id_label = "IntroAudio"
+stream = ExtResource("2_audio")
+autoplay = true

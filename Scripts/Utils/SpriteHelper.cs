@@ -12,7 +12,7 @@ public static class SpriteHelper
 
         var anims = new Dictionary<string, Texture2D[]>();
 
-        // 1. Load Idle
+        // 1. Load Idle (High-Res)
         var idleImage = LoadAndCleanImage("res://Assets/Sprites/Player/Tháchanh_ đưng yen.png");
         var idleTextures = new List<Texture2D>();
 
@@ -24,43 +24,34 @@ public static class SpriteHelper
                 idleTextures.Add(SmartPad(idleImage, r, 240, 240));
             }
             if (idleTextures.Count > 0) anims["idle"] = idleTextures.ToArray();
-            GD.Print($"Idle: found {blobs.Count} blobs, created {idleTextures.Count} frames");
+            GD.Print($"Idle: created {idleTextures.Count} high-res frames");
         }
 
-        // 2. Run animation - load từ sprite sheet thach_sanh_run.png (3 cột x 2 hàng = 6 frames)
-        var runImage = LoadAndCleanImage("res://Assets/Sprites/Player/thach_sanh_run.png");
+        // 2. Run animation - load từ các file riêng lẻ 1, 2, 4 (High-Res)
         var runTextures = new List<Texture2D>();
+        string[] runPaths = { "res://Assets/Sprites/Enemies/1.png", "res://Assets/Sprites/Enemies/2.png", "res://Assets/Sprites/Enemies/4.png" };
 
-        if (runImage != null)
+        foreach (var path in runPaths)
         {
-            // Sprite sheet 3x2 grid
-            var runFramesRaw = SliceSpriteSheetGridRaw(runImage, 3, 2);
-            GD.Print($"Run: sliced {runFramesRaw.Count} raw frames from sprite sheet");
-
-            foreach (var frameImg in runFramesRaw)
+            var frameImg = LoadAndCleanImage(path);
+            if (frameImg != null)
             {
-                // Tìm bounding box thực của nhân vật trong frame
                 var bounds = FindBounds(frameImg);
                 if (bounds.Size.X > 5 && bounds.Size.Y > 5)
                 {
-                    // Pad vào frame chuẩn 240x240 giống idle
                     runTextures.Add(SmartPad(frameImg, bounds, 240, 240));
                 }
             }
-
-            if (runTextures.Count > 0)
-            {
-                anims["run"] = runTextures.ToArray();
-            }
-            GD.Print($"Run: created {runTextures.Count} frames from thach_sanh_run.png");
         }
-        else
+
+        if (runTextures.Count > 0)
         {
-            GD.Print("Run: failed to load thach_sanh_run.png, falling back to idle frames");
-            if (idleTextures.Count > 0)
-            {
-                anims["run"] = idleTextures.ToArray();
-            }
+            anims["run"] = runTextures.ToArray();
+            GD.Print($"Run: created {runTextures.Count} high-res frames from 1, 2, 4.png");
+        }
+        else if (idleTextures.Count > 0)
+        {
+            anims["run"] = idleTextures.ToArray();
         }
 
         // Jump animation - load from ThachSanh_Ani_Nhay.png (2 cols x 2 rows = 4 frames)
