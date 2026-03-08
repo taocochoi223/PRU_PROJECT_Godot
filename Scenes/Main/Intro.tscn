@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://Scripts/UI/Intro.cs" id="1_intro"]
 [ext_resource type="AudioStream" path="res://Assets/sound/intro.mp3" id="2_audio"]
-[ext_resource type="AudioStream" path="res://Assets/sound/intro_MTP.mp3" id="3_music"]
+[ext_resource type="AudioStream" path="res://Assets/sound/a_meadow_of_mysteries.mp3" id="3_music"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_story"]
 font_size = 32
@@ -51,4 +51,4 @@ autoplay = true
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("3_music")
 autoplay = true
-volume_db = 2
+volume_db = -10.0
