@@ -238,7 +238,7 @@ public static class SpriteHelper
     /// <summary>
     /// Cắt và căn chỉnh sprite vào frame cố định, cho phép đổi tỷ lệ với customScale
     /// </summary>
-    public static ImageTexture SmartPad(Image source, Rect2I rect, int outW, int outH, float customScale = 1.0f)
+    public static ImageTexture SmartPad(Image source, Rect2I rect, int outW, int outH, float customScale = 1.0f, bool flipX = false)
     {
         int bw = rect.Size.X;
         int bh = rect.Size.Y;
@@ -256,6 +256,8 @@ public static class SpriteHelper
                 }
             }
         }
+
+        if (flipX) crop.FlipX();
 
         int targetMaxHeight = outH - 20;
         int targetMaxWidth = outW - 20;
@@ -484,6 +486,193 @@ public static class SpriteHelper
         return BuildSpriteFrames(new Dictionary<string, Texture2D[]> {
             {"idle", new[] { frames[0], frames[2] }}, {"rescued", new[] { frames[1], frames[3] }}
         }, 4.0f);
+    }
+
+    public static SpriteFrames CreateFinalBossSpriteFrames()
+    {
+        // 1. Tải và lọc phông xanh
+        var bossImg = LoadAndCleanImage("res://Assets/Sprites/Enemies/FinalBoss.jpg");
+        if (bossImg == null) return null;
+
+        GD.Print($"[FinalBossHelper] Analyzing FinalBoss.jpg dynamically...");
+
+        // 2. Tìm tất cả các con quái (blobs) trên toàn bộ ảnh
+        var allBlobs = FindBlobs(bossImg);
+        GD.Print($"[FinalBossHelper] Found {allBlobs.Count} initial blobs.");
+
+        // Lọc bỏ text hoặc nhiễu (Final Boss phải to, ví dụ > 100x100 hoặc pixel count lớn)
+        var bossBlobs = new List<Rect2I>();
+        foreach (var b in allBlobs)
+        {
+            if (b.Size.X > 100 && b.Size.Y > 100)
+            {
+                bossBlobs.Add(b);
+            }
+        }
+        GD.Print($"[FinalBossHelper] Filtered to {bossBlobs.Count} boss sprites.");
+
+        // 3. Gom nhóm theo hàng (Dùng Y-Bottom - Chân chạm đất - làm mốc để chính xác nhất)
+        var rows = new List<List<Rect2I>>();
+        bossBlobs.Sort((a, b) => (a.Position.Y + a.Size.Y).CompareTo(b.Position.Y + b.Size.Y));
+
+        if (bossBlobs.Count > 0)
+        {
+            var currentRow = new List<Rect2I> { bossBlobs[0] };
+            rows.Add(currentRow);
+            for (int i = 1; i < bossBlobs.Count; i++)
+            {
+                // Nếu chân quái lệch nhau ít (ví dụ < 100px) thì coi là cùng hàng
+                int currentBottom = currentRow[0].Position.Y + currentRow[0].Size.Y;
+                int nextBottom = bossBlobs[i].Position.Y + bossBlobs[i].Size.Y;
+
+                if (Math.Abs(nextBottom - currentBottom) < 100)
+                {
+                    currentRow.Add(bossBlobs[i]);
+                }
+                else
+                {
+                    currentRow.Sort((a, b) => a.Position.X.CompareTo(b.Position.X));
+                    currentRow = new List<Rect2I> { bossBlobs[i] };
+                    rows.Add(currentRow);
+                }
+            }
+            rows[rows.Count - 1].Sort((a, b) => a.Position.X.CompareTo(b.Position.X));
+        }
+
+        GD.Print($"[FinalBossHelper] Detected {rows.Count} rows of sprites.");
+
+        var anims = new Dictionary<string, Texture2D[]>();
+        int outSize = 600; // Final Boss cho to hẳn ra 600x600
+
+        // Đúng theo hình minh họa: Dòng 2=attack, Dòng 3=die. Bỏ qua dòng 1.
+        string[] animNames = { "idle", "SKIP", "attack", "die" };
+
+        for (int i = 0; i < animNames.Length; i++)
+        {
+            if (animNames[i] == "SKIP") continue;
+            
+            if (i < rows.Count)
+            {
+                var texList = new List<Texture2D>();
+                foreach (var rect in rows[i])
+                {
+                    // Lật ngang nếu là Rowland 2 (Attack) và Rowland 3 (Die)
+                    // Vì trong source chúng hướng sang Phải, ta cần lật để đồng bộ hướng Trái với Idle.
+                    bool shouldFlip = (animNames[i] == "attack" || animNames[i] == "die");
+                    texList.Add(SmartPad(bossImg, rect, outSize, outSize, 1.0f, shouldFlip));
+                }
+                anims[animNames[i]] = texList.ToArray();
+                GD.Print($"[FinalBossHelper] Assigned Row {i} to {animNames[i]} ({texList.Count} frames)");
+            }
+        }
+
+        // Fallbacks & Map Walk/Hurt
+        if (anims.ContainsKey("idle") && !anims.ContainsKey("walk")) anims["walk"] = anims["idle"];
+        if (anims.ContainsKey("die") && !anims.ContainsKey("hurt")) anims["hurt"] = new[] { anims["die"][0] };
+        else if (anims.ContainsKey("attack") && !anims.ContainsKey("hurt")) anims["hurt"] = new[] { anims["attack"][0] };
+
+        // Ensure all exist
+        foreach (var name in new[] { "idle", "walk", "attack", "hurt", "die" })
+            if (!anims.ContainsKey(name)) anims[name] = new[] { CreateColoredRect(outSize, outSize, new Color(1, 0, 0, 0.2f)) };
+
+        return BuildSpriteFrames(anims, 6.0f);
+    }
+
+    /// <summary>
+    /// Tìm bounds trong một vùng cụ thể (thay vì toàn bộ ảnh)
+    /// </summary>
+    public static Rect2I FindBoundsInRegion(Image img, Rect2I region)
+    {
+        int minX = region.End.X, minY = region.End.Y, maxX = region.Position.X, maxY = region.Position.Y;
+        bool found = false;
+
+        for (int y = region.Position.Y; y < region.End.Y; y++)
+        {
+            for (int x = region.Position.X; x < region.End.X; x++)
+            {
+                if (x >= 0 && x < img.GetWidth() && y >= 0 && y < img.GetHeight())
+                {
+                    if (img.GetPixel(x, y).A > 0.1f)
+                    {
+                        found = true;
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+        }
+
+        if (!found) return new Rect2I(0, 0, 0, 0);
+        return new Rect2I(minX, minY, maxX - minX + 1, maxY - minY + 1);
+    }
+
+    public static SpriteFrames CreateBossSpriteFrames()
+    {
+        var bossImg = LoadAndCleanImage("res://Assets/Sprites/Enemies/BossRan.png");
+        if (bossImg == null) return null;
+
+        int cols = 6;
+        int rows = 5;
+        int outSize = 512;
+
+        GD.Print($"[BossHelper] Slicing BossRan.png into {cols}x{rows} grid...");
+        
+        // 1. Cắt thô theo Grid
+        var rawFrames = SliceSpriteSheetGridRaw(bossImg, cols, rows);
+        var processedFrames = new List<Texture2D>();
+
+        // 2. Với mỗi ô Grid, tìm bao (Bounds) và căn giữa (SmartPad)
+        foreach (var f in rawFrames)
+        {
+            var bounds = FindBounds(f);
+            if (bounds.Size.X > 10 && bounds.Size.Y > 10)
+            {
+                processedFrames.Add(SmartPad(f, bounds, outSize, outSize));
+            }
+            else
+            {
+                // Frame trống
+                processedFrames.Add(null);
+            }
+        }
+
+        var anims = new Dictionary<string, Texture2D[]>();
+        string[] animNames = { "idle", "walk", "attack", "hurt", "die" };
+
+        // 3. Phân bổ theo hàng (mỗi hàng có tối đa 'cols' frames)
+        for (int r = 0; r < rows; r++)
+        {
+            if (r >= animNames.Length) break;
+
+            var rowTextures = new List<Texture2D>();
+            for (int c = 0; c < cols; c++)
+            {
+                int index = r * cols + c;
+                if (index < processedFrames.Count && processedFrames[index] != null)
+                {
+                    rowTextures.Add(processedFrames[index]);
+                }
+            }
+
+            if (rowTextures.Count > 0)
+            {
+                anims[animNames[r]] = rowTextures.ToArray();
+            }
+        }
+
+        // Fallback
+        foreach (var name in animNames)
+        {
+            if (!anims.ContainsKey(name))
+            {
+                GD.PrintErr($"[BossHelper] Missing animation '{name}', using fallback.");
+                anims[name] = new[] { CreateColoredRect(outSize, outSize, new Color(1, 0, 0, 0.2f)) };
+            }
+        }
+
+        return BuildSpriteFrames(anims, 8.0f);
     }
 
     private static Texture2D[] LoadSpriteSheet2x2(string path)
