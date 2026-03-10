@@ -9,10 +9,15 @@ public partial class TreasureChest : Area2D
     private AnimatedSprite2D _animSprite;
     private Label _messageLabel;
     private bool _isOpened = false;
-
-    // Các thành phần đồ họa để làm hiệu ứng
-    private Node2D _portal;
     private Node2D _keyVisual;
+    private Node2D _portal;
+    private int _popupSlide = 1;
+    private CanvasLayer _popupOverlay;
+    private Label _popupContentLabel;
+    private TextureRect _popupInfographic;
+    private Player _currentPlayer;
+    private Tween _typewriterTween;
+    private bool _isTypewriting = false;
 
     public override void _Ready()
     {
@@ -34,6 +39,12 @@ public partial class TreasureChest : Area2D
 
         BodyEntered += OnBodyEntered;
         _animSprite.Play("idle"); // Lão Hạc => Rương đóng
+
+        // Ẩn rương ngay từ đầu nếu yêu cầu diệt hết quái (Màn 1)
+        if (RequireAllEnemiesDefeated)
+        {
+            Visible = false;
+        }
     }
 
     private void CreatePlaceholderSprites()
@@ -103,6 +114,24 @@ public partial class TreasureChest : Area2D
 
             if (aliveCount == 0)
             {
+                // Tìm vị trí con quái vừa chết để bay tới đó (Chỉ thực hiện ở Màn 1)
+                if (GameManager.Instance.CurrentLevel == 1)
+                {
+                    var enemies = GetTree().GetNodesInGroup("enemies");
+                    foreach (var node in enemies)
+                    {
+                        if (node is BaseEnemy e && e.IsDead)
+                        {
+                            GlobalPosition = e.GlobalPosition;
+                            GD.Print($"Rương đã dịch chuyển tới vị trí quái chết: {GlobalPosition}");
+                            break;
+                        }
+                    }
+                }
+
+                // Hiện rương ra khi quái đã chết hết!
+                Visible = true;
+                
                 // Tìm lại player để chắc chắn
                 Player p = null;
                 foreach (var b in GetOverlappingBodies()) if (b is Player target) p = target;
@@ -110,24 +139,34 @@ public partial class TreasureChest : Area2D
             }
             else
             {
-                // Cập nhật thông báo số quái còn lại để người chơi dễ tìm
-                _messageLabel.Text = $"Còn {aliveCount} quái vật chưa tiêu diệt!";
-                _messageLabel.Visible = true;
-
-                // Debug print (chỉ in mỗi vài giây để admin check log)
-                if (GD.Randi() % 120 == 0)
+                // Cập nhật thông báo số quái còn lại để người chơi dễ tìm (Chỉ hiện khi rương đã hiện)
+                if (Visible)
                 {
-                    GD.Print($"[DEBUG] TreasureChest needs {aliveCount} more enemies dead.");
-                    foreach (var n in allEnemiesInGroup)
-                    {
-                        if (n is BaseEnemy e && !e.IsDead) GD.Print($" - {e.Name} at {e.GlobalPosition}");
-                    }
+                    _messageLabel.Text = $"Còn {aliveCount} quái vật chưa tiêu diệt!";
+                    _messageLabel.Visible = true;
                 }
             }
         }
         else
         {
             _messageLabel.Visible = false;
+            
+            // Một cơ chế đặc biệt: Nếu quái đã chết hết nhưng người chơi ở xa, rương vẫn phải hiện ra để người chơi biết đường mà tới
+            if (RequireAllEnemiesDefeated && !Visible)
+            {
+                var enemies = GetTree().GetNodesInGroup("enemies");
+                bool anyAlive = false;
+                foreach (var n in enemies) if (n is BaseEnemy e && !e.IsDead) anyAlive = true;
+                
+                if (!anyAlive)
+                {
+                    Visible = true;
+                    // Chạy hiệu ứng xuất hiện cho ngầu
+                    Modulate = new Color(1, 1, 1, 0);
+                    var tw = CreateTween();
+                    tw.TweenProperty(this, "modulate:a", 1.0f, 1.0f);
+                }
+            }
         }
     }
 
@@ -184,32 +223,50 @@ public partial class TreasureChest : Area2D
             chestParticles.Emitting = true;
         }));
 
-        // 1. Sinh ra Chìa khóa vàng lấp lánh (Tương tự hình ảnh xịn)
+        // --- PHẦN THƯỞNG KĨ NĂNG (Icon Rìu Bay đã tách nền) ---
         _keyVisual = new Node2D();
         _keyVisual.Position = new Vector2(0, -20);
         AddChild(_keyVisual);
 
-        // Hình dạng bề ngoài của chìa
-        var keyRect = new ColorRect();
-        keyRect.Color = Colors.Yellow;
-        keyRect.Size = new Vector2(8, 20);
-        keyRect.Position = new Vector2(-4, -10);
-        _keyVisual.AddChild(keyRect);
+        var rewardSprite = new Sprite2D();
+        // Sử dụng hàm PrepareAxeTexture của Player để lấy texture xịn không nền
+        string skillPath = "res://Assets/Sprites/Player/Skill_1.png";
+        var tex = GD.Load<Texture2D>(skillPath);
+        
+        if (tex != null)
+        {
+            // Tách nền để icon đẹp hơn (RGB 35, 35, 35 thường là nền đen trong sprite game này)
+            Image img = tex.GetImage();
+            img.Decompress();
+            img.Convert(Image.Format.Rgba8);
+            
+            // Xóa nền đen/xám nếu có
+            Color bgColor = img.GetPixel(0, 0);
+            for (int y = 0; y < img.GetHeight(); y++) {
+                for (int x = 0; x < img.GetWidth(); x++) {
+                    Color p = img.GetPixel(x, y);
+                    float diff = Mathf.Sqrt(Mathf.Pow(p.R - bgColor.R, 2) + Mathf.Pow(p.G - bgColor.G, 2) + Mathf.Pow(p.B - bgColor.B, 2));
+                    if (diff < 0.2f) img.SetPixel(x, y, new Color(0,0,0,0));
+                }
+            }
+            rewardSprite.Texture = ImageTexture.CreateFromImage(img);
+            rewardSprite.Scale = new Vector2(0.35f, 0.35f); // Nhỏ gọn và tinh tế hơn
+        }
+        else
+        {
+            rewardSprite.Texture = GD.Load<Texture2D>("res://icon.svg");
+            rewardSprite.Scale = new Vector2(0.2f, 0.2f);
+        }
+        _keyVisual.AddChild(rewardSprite);
 
-        var keyHead = new ColorRect();
-        keyHead.Color = Colors.Yellow;
-        keyHead.Size = new Vector2(16, 10);
-        keyHead.Position = new Vector2(-8, -14);
-        _keyVisual.AddChild(keyHead);
-
-        // Chìa khóa phát sáng (Particles)
+        // Hiệu ứng hạt bụi lấp lánh quanh Icon (Màu xanh Cyan rực rỡ)
         var keyGlow = new CpuParticles2D();
-        keyGlow.Amount = 15;
-        keyGlow.Lifetime = 0.5f;
+        keyGlow.Amount = 30;
+        keyGlow.Lifetime = 0.6f;
         keyGlow.EmissionShape = CpuParticles2D.EmissionShapeEnum.Sphere;
-        keyGlow.EmissionSphereRadius = 15f;
-        keyGlow.Gravity = new Vector2(0, -20);
-        keyGlow.Color = new Color(1f, 1f, 0.5f, 0.8f);
+        keyGlow.EmissionSphereRadius = 25f;
+        keyGlow.Gravity = new Vector2(0, -30);
+        keyGlow.Color = new Color(0f, 1f, 1f, 0.9f); 
         _keyVisual.AddChild(keyGlow);
 
         var tween = CreateTween();
@@ -231,11 +288,25 @@ public partial class TreasureChest : Area2D
             flyTween.Chain().TweenCallback(Callable.From(() =>
             {
                 _keyVisual.QueueFree();
-                GameManager.Instance.TotalKeys++;
-                GD.Print("Đã nhặt 1 chìa khóa! Tổng chìa: " + GameManager.Instance.TotalKeys);
-
-                // Mở cổng vĩ đại
-                CreateEpicPortal(player);
+                
+                if (GameManager.Instance.CurrentLevel == 1)
+                {
+                    // Đã có Popup rồi nên không cần dòng text hiện đè lên nữa
+                    
+                    GameManager.Instance.UnlockNextSkill();
+                    GameManager.Instance.TotalKeys++; // Nhận luôn 1 chìa khóa ở Màn 1
+                    
+                    // Hiện 2 trang mô tả (Slide)
+                    ShowRewardPopups(player);
+                    
+                    GD.Print("Màn 1: Nhận kỹ năng và chìa khóa xong, hiện popup mô tả.");
+                }
+                else
+                {
+                    // Ở các màn khác (nếu có rương) thì vẫn mở cổng tự động (nếu muốn)
+                    GameManager.Instance.TotalKeys++;
+                    CreateEpicPortal(player);
+                }
             }));
         }));
     }
@@ -329,5 +400,176 @@ public partial class TreasureChest : Area2D
         {
             GameManager.Instance.NextLevel();
         }));
+    }
+
+    private void ShowRewardPopups(Player player)
+    {
+        _currentPlayer = player;
+        _popupSlide = 1;
+
+        _popupOverlay = new CanvasLayer();
+        _popupOverlay.Layer = 100;
+        GetTree().Root.AddChild(_popupOverlay);
+
+        var bg = new ColorRect();
+        bg.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        bg.Color = new Color(0, 0, 0, 0.7f); // Nền tối mờ phía sau
+        _popupOverlay.AddChild(bg);
+
+        // Khung chính (Giấy cuộn)
+        var panel = new ColorRect();
+        panel.Size = new Vector2(950, 450);
+        panel.Position = new Vector2((1152 - 950) / 2, (648 - 450) / 2 - 20);
+        panel.Color = new Color(0.92f, 0.85f, 0.65f); // Tông màu vàng cũ (Parchment)
+        _popupOverlay.AddChild(panel);
+
+        // Viền trang trí (Border)
+        var border = new ReferenceRect();
+        border.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        border.EditorOnly = false;
+        border.BorderColor = new Color(0.5f, 0.35f, 0.15f); // Màu nâu đậm cổ điển
+        border.BorderWidth = 4f;
+        panel.AddChild(border);
+        
+        // Góc trang trí (Gợi ý thị giác)
+        for (int i = 0; i < 4; i++) {
+            var corner = new ColorRect();
+            corner.Size = new Vector2(20, 20);
+            corner.Color = new Color(0.4f, 0.25f, 0.1f);
+            if (i == 0) corner.Position = new Vector2(0,0);
+            if (i == 1) corner.Position = new Vector2(930,0);
+            if (i == 2) corner.Position = new Vector2(0,430);
+            if (i == 3) corner.Position = new Vector2(930,430);
+            panel.AddChild(corner);
+        }
+
+        _popupContentLabel = new Label();
+        _popupContentLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _popupContentLabel.VerticalAlignment = VerticalAlignment.Center;
+        _popupContentLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _popupContentLabel.Size = new Vector2(850, 350);
+        _popupContentLabel.Position = new Vector2(50, 50);
+        _popupContentLabel.AddThemeFontSizeOverride("font_size", 30);
+        _popupContentLabel.AddThemeColorOverride("font_shadow_color", new Color(0,0,0,0.3f));
+        _popupContentLabel.AddThemeConstantOverride("shadow_offset_x", 2);
+        _popupContentLabel.AddThemeConstantOverride("shadow_offset_y", 2);
+        panel.AddChild(_popupContentLabel);
+
+        // Thêm TextureRect cho trang 2
+        _popupInfographic = new TextureRect();
+        _popupInfographic.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
+        _popupInfographic.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+        _popupInfographic.Size = new Vector2(900, 400);
+        _popupInfographic.Position = new Vector2(25, 25);
+        _popupInfographic.Visible = false;
+        panel.AddChild(_popupInfographic);
+
+        var prompt = new Label();
+        prompt.Text = "--- [ Nhấn phím bất kỳ hoặc Click để tiếp tục ] ---";
+        prompt.HorizontalAlignment = HorizontalAlignment.Center;
+        prompt.Size = new Vector2(950, 40);
+        prompt.Position = new Vector2(0, 400);
+        prompt.AddThemeFontSizeOverride("font_size", 18);
+        prompt.AddThemeColorOverride("font_color", new Color(0.3f, 0.2f, 0.1f));
+        panel.AddChild(prompt);
+
+        // Hoạt ảnh xuất hiện (Fade & Scale)
+        panel.Scale = new Vector2(0.5f, 0.5f);
+        panel.PivotOffset = panel.Size / 2;
+        panel.Modulate = new Color(1, 1, 1, 0);
+        var entryTween = CreateTween().SetParallel(true);
+        entryTween.TweenProperty(panel, "scale", new Vector2(1, 1), 0.4f).SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
+        entryTween.TweenProperty(panel, "modulate:a", 1.0f, 0.3f);
+
+        UpdatePopupText();
+
+        var timer = GetTree().CreateTimer(0.6);
+        timer.Timeout += () => 
+        {
+            var listener = new Control();
+            listener.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+            _popupOverlay.AddChild(listener);
+            listener.GuiInput += (ev) => {
+                if (ev is InputEventMouseButton mb && mb.Pressed) OnNextSlide();
+            };
+
+            var keyHandler = new Node();
+            keyHandler.SetScript(GD.Load<Script>("res://Scripts/NPCs/PopupInputHelper.cs") ?? null);
+            _popupOverlay.AddChild(keyHandler);
+        };
+    }
+
+    private void UpdatePopupText()
+    {
+        if (_popupSlide == 1)
+        {
+            _popupContentLabel.Visible = true;
+            _popupInfographic.Visible = false;
+            
+            string storyText = "CHÌA KHÓA VÀNG ĐÃ ĐƯỢC TÌM THẤY!\n\nChiếc chìa khóa này tỏa ra ánh sáng yếu ớt, như đang dẫn lối.\nCánh cổng đá cổ phía trước dường như cần 3 chìa khóa để mở.\n\n[ Bạn đã có: 1 / 3 ]\nHãy tiếp tục tìm 2 chiếc còn lại trong hang động.";
+            _popupContentLabel.Text = storyText;
+            _popupContentLabel.AddThemeColorOverride("font_color", new Color(0.25f, 0.15f, 0.05f)); // Màu nâu gỗ sẫm
+            
+            // Hiệu ứng Đánh máy (Typewriter)
+            RunTypewriter(storyText.Length);
+        }
+        else if (_popupSlide == 2)
+        {
+            _popupContentLabel.Visible = false;
+            _popupInfographic.Visible = true;
+            
+            // Load hình ảnh Infographic người dùng cung cấp (Hỗ trợ cả .jpg và .png)
+            var tex = GD.Load<Texture2D>("res://Assets/UI/Skill_J_Info.jpg");
+            if (tex == null) tex = GD.Load<Texture2D>("res://Assets/UI/Skill_J_Info.png");
+            
+            if (tex != null) _popupInfographic.Texture = tex;
+            else {
+                // Nếu chưa có file thì hiện thông báo tạm
+                _popupContentLabel.Visible = true;
+                _popupContentLabel.Text = "KỸ NĂNG MỚI: RÌU BAY (Phím J)\n\n[ Vui lòng thêm ảnh Skill_J_Info.png vào Assets/UI ]";
+                _popupContentLabel.AddThemeColorOverride("font_color", Colors.Cyan);
+            }
+        }
+    }
+
+    private void RunTypewriter(int length)
+    {
+        if (_typewriterTween != null) _typewriterTween.Kill();
+        
+        _popupContentLabel.VisibleCharacters = 0;
+        _isTypewriting = true;
+
+        _typewriterTween = CreateTween();
+        _typewriterTween.TweenProperty(_popupContentLabel, "visible_characters", length, length * 0.05f) // Tốc độ 0.05s/chữ
+            .SetTrans(Tween.TransitionType.Linear);
+        
+        _typewriterTween.Finished += () => _isTypewriting = false;
+    }
+
+    public void OnNextSlide()
+    {
+        // Nếu đang đánh máy mà nhấn phím thì hiện hết chữ luôn
+        if (_isTypewriting)
+        {
+            _isTypewriting = false;
+            if (_typewriterTween != null) _typewriterTween.Kill();
+            _popupContentLabel.VisibleCharacters = -1; // Hiện toàn bộ
+            return;
+        }
+
+        _popupSlide++;
+        if (_popupSlide <= 2)
+        {
+            UpdatePopupText();
+        }
+        else
+        {
+            if (_popupOverlay != null)
+            {
+                _popupOverlay.QueueFree();
+                _popupOverlay = null;
+            }
+            if (_currentPlayer != null) _currentPlayer.Call("RefreshSkillUI");
+        }
     }
 }

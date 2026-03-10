@@ -15,6 +15,8 @@
 [ext_resource type="Shader" uid="uid://byobls48rmd2" path="res://Assets/Shaders/pit_depth.gdshader" id="15"]
 [ext_resource type="Shader" uid="uid://7y20m8w0ulwp" path="res://Assets/Shaders/cave_stone.gdshader" id="16"]
 [ext_resource type="Shader" uid="uid://c3ll47lc5fefq" path="res://Assets/Shaders/cave_interior.gdshader" id="17"]
+[ext_resource type="PackedScene" uid="uid://snake001" path="res://Scenes/Enemies/Snake.tscn" id="18"]
+[ext_resource type="PackedScene" uid="uid://chest0000001" path="res://Scenes/NPCs/TreasureChest.tscn" id="19"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_stone"]
 shader = ExtResource("16")
@@ -811,14 +813,12 @@ SpawnInterval = 3.0
 [node name="SpikeZone3_A" parent="." unique_id=1843567989 instance=ExtResource("6")]
 position = Vector2(2608, 575)
 DownDuration = 1.0
-SpikeCount = 4
 SpikeSpacing = 20.0
 
 [node name="SpikeZone3_C" parent="." unique_id=1022039306 instance=ExtResource("6")]
 position = Vector2(2790, 575)
 DownDuration = 1.0
 StartDelay = 0.5
-SpikeCount = 4
 SpikeSpacing = 20.0
 
 [node name="SpikeZone3_D" parent="." unique_id=608604086 instance=ExtResource("6")]
@@ -884,5 +884,11 @@ offset_top = 460.0
 offset_right = 4158.0
 offset_bottom = 500.0
 color = Color(0.11, 0.28, 0.06, 0.75)
+
+[node name="Snake_EndGuard" parent="." unique_id=77777777 instance=ExtResource("18")]
+position = Vector2(3473, 561)
+
+[node name="TreasureChest" parent="." unique_id=99999999 instance=ExtResource("19")]
+position = Vector2(3684, 585)
 
 [node name="HUD" parent="." unique_id=781967314 instance=ExtResource("2")]

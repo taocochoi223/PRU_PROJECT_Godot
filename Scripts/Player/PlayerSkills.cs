@@ -137,6 +137,13 @@ public partial class Player : CharacterBody2D
         margin.AddThemeConstantOverride("margin_top", -40); // BÙ TRỪ KHOẢNG RỖNG: Dùng thông số Âm để giật ngược toàn bộ khung kỹ năng lên trên cao, đâm xuyên lên thanh máu
         _skillPanelLayer.AddChild(margin);
 
+        // ẨN TOÀN BỘ KHUNG KỸ NĂNG Ở MÀN 1 THEO YÊU CẦU
+        // ẨN TOÀN BỘ KHUNG KỸ NĂNG Ở MÀN 1 NẾU CHƯA CÓ KỸ NĂNG NÀO
+        if (GameManager.Instance.CurrentLevel == 1 && GameManager.Instance.UnlockedSkillsCount == 0)
+        {
+            _skillPanelLayer.Visible = false;
+        }
+
         // HBoxContainer tự dồn các nút về góc trên phải
         var hbox = new HBoxContainer();
         hbox.Alignment = BoxContainer.AlignmentMode.End;
@@ -197,6 +204,36 @@ public partial class Player : CharacterBody2D
             _cooldownLabels[i].AddThemeColorOverride("font_outline_color", new Color(0, 0, 0));
             _cooldownLabels[i].AddThemeFontSizeOverride("font_size", 56); // Cỡ chữ phóng to cùng với diện tích Nút
             btnHolder.AddChild(_cooldownLabels[i]);
+            
+            // Ẩn những kỹ năng chưa được mở khóa
+            if (i >= GameManager.Instance.UnlockedSkillsCount)
+            {
+                btnHolder.Visible = false;
+            }
+        }
+    }
+
+    public void RefreshSkillUI()
+    {
+        if (_skillPanelLayer == null) return;
+        
+        // Hiện lại layer nếu đã có ít nhất 1 kỹ năng (kể cả đang ở màn 1)
+        if (GameManager.Instance.UnlockedSkillsCount > 0)
+        {
+            _skillPanelLayer.Visible = true;
+        }
+        else if (GameManager.Instance.CurrentLevel > 1)
+        {
+            _skillPanelLayer.Visible = true;
+        }
+        
+        for (int i = 0; i < 3; i++)
+        {
+            if (_skillIcons[i] != null && _skillIcons[i].GetParent() is Control holder)
+            {
+                // Chỉ hiện icon của kỹ năng trong phạm vi đã mở khóa
+                holder.Visible = (i < GameManager.Instance.UnlockedSkillsCount);
+            }
         }
     }
 
@@ -238,17 +275,18 @@ public partial class Player : CharacterBody2D
         bool press1 = Input.IsActionJustPressed("skill1") || Input.IsKeyPressed(Key.Key1);
         bool press2 = Input.IsActionJustPressed("skill2") || Input.IsKeyPressed(Key.Key2);
         bool press3 = Input.IsActionJustPressed("skill3") || Input.IsKeyPressed(Key.Key3);
+        int unlocked = GameManager.Instance.UnlockedSkillsCount;
 
         // Đảm bảo chặn mọi chiêu nếu nhân vật đang xuất chiêu (-_isAttacking) HOẶC bộ định giờ (Timer) chưa về 0
-        if (press1 && _skill1Timer <= 0 && !_isAttacking)
+        if (press1 && _skill1Timer <= 0 && !_isAttacking && unlocked >= 1)
         {
             ExecuteAxeThrow();
         }
-        else if (press2 && _skill2Timer <= 0 && !_isAttacking)
+        else if (press2 && _skill2Timer <= 0 && !_isAttacking && unlocked >= 2)
         {
             ExecuteWhirlwind();
         }
-        else if (press3 && _skill3Timer <= 0 && !_isAttacking)
+        else if (press3 && _skill3Timer <= 0 && !_isAttacking && unlocked >= 3)
         {
             ExecuteEarthBreaker();
         }

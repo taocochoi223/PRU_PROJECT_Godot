@@ -19,6 +19,13 @@ public partial class LevelManager : Node2D
         // Set current level
         GameManager.Instance.CurrentLevel = LevelNumber;
 
+        // ── PHẦN CỦA BẠN: Reset kĩ năng nếu là màn 1 ──
+        if (LevelNumber == 1)
+        {
+            GameManager.Instance.UnlockedSkillsCount = 0;
+            GD.Print("Level 1: Reset UnlockedSkillsCount to 0");
+        }
+
         // ── Setup level ───────────────────────────────────────────
         if (HasNode("SpawnPoint"))
             _spawnPoint = GetNode<Node2D>("SpawnPoint");
@@ -26,19 +33,41 @@ public partial class LevelManager : Node2D
         CollectCheckpoints();
         SpawnPlayer();
         ConnectPlayerSignals();
+
+        // ── PHẦN TRÊN GIT: Sinh bẫy đá rơi ──
+        if (LevelNumber == 1)
+        {
+            SpawnLevel1CustomTraps();
+        }
+    }
+
+    private void SpawnLevel1CustomTraps()
+    {
+        // Sinh 3 đá rơi bất ngờ (rơi từ trên cao màn hình xuống)
+        var rock1 = new FallingRockTrap();
+        rock1.Position = new Vector2(750, -50); 
+        rock1.TriggerRange = 600f;              
+        AddChild(rock1);
+
+        var rock2 = new FallingRockTrap();
+        rock2.Position = new Vector2(1750, 0); 
+        rock2.TriggerRange = 550f;
+        AddChild(rock2);
+
+        var rock3 = new FallingRockTrap();
+        rock3.Position = new Vector2(3000, -100); 
+        rock3.TriggerRange = 650f;
+        AddChild(rock3);
     }
 
     private void CollectCheckpoints()
     {
         _checkpoints.Clear();
-
-        // Thêm spawn point đầu tiên
         if (_spawnPoint != null)
         {
             _checkpoints.Add(_spawnPoint.GlobalPosition);
         }
 
-        // Tìm các Checkpoint marker trong scene
         foreach (var child in GetChildren())
         {
             if (child is Marker2D marker && child.Name.ToString().StartsWith("Checkpoint"))
@@ -47,9 +76,7 @@ public partial class LevelManager : Node2D
             }
         }
 
-        // Sắp xếp theo thứ tự X (từ trái sang phải)
         _checkpoints.Sort((a, b) => a.X.CompareTo(b.X));
-
         GD.Print($"LevelManager: Tìm thấy {_checkpoints.Count} checkpoint(s)");
     }
 
@@ -88,10 +115,6 @@ public partial class LevelManager : Node2D
         }
     }
 
-    /// <summary>
-    /// Được gọi khi Player qua checkpoint mới.
-    /// Gọi từ CheckpointArea hoặc LevelManager tự kiểm tra.
-    /// </summary>
     public void ActivateCheckpoint(int index)
     {
         if (index > _currentCheckpoint && index < _checkpoints.Count)
@@ -103,11 +126,9 @@ public partial class LevelManager : Node2D
 
     private void OnPlayerDied()
     {
-        // Chờ animation chết xong (~1.2s) rồi hiện màn Game Over
         var timer = GetTree().CreateTimer(1.2);
         timer.Timeout += () =>
         {
-            // Guard: scene có thể đã bị thay đổi
             if (!IsInstanceValid(this)) return;
             GameManager.Instance.GameOver();
         };
@@ -115,7 +136,6 @@ public partial class LevelManager : Node2D
 
     public override void _Process(double delta)
     {
-        // Tự động kích hoạt checkpoint khi player đi qua
         if (_player == null || _player.IsQueuedForDeletion()) return;
 
         for (int i = _currentCheckpoint + 1; i < _checkpoints.Count; i++)

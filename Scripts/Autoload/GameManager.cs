@@ -15,6 +15,7 @@ public partial class GameManager : Node
     public bool IsPaused { get; set; } = false;
     public bool HasBossKey { get; set; } = false;
     public int TotalKeys { get; set; } = 0;
+    public int UnlockedSkillsCount { get; set; } = 0; // Số kỹ năng đã mở (0, 1, 2, 3)
 
     // Transition UI
     private CanvasLayer _transitionLayer;
@@ -184,6 +185,22 @@ public partial class GameManager : Node
     {
         CurrentLevel++;
         LoadLevel(CurrentLevel);
+    }
+
+    public void UnlockNextSkill()
+    {
+        if (UnlockedSkillsCount < 3)
+        {
+            UnlockedSkillsCount++;
+            GD.Print($"Kỹ năng mới đã được mở khóa! Tổng số: {UnlockedSkillsCount}");
+            
+            // Thông báo cho Player để cập nhật UI
+            var player = GetTree().GetFirstNodeInGroup("player") as Player;
+            if (player != null && player.HasMethod("RefreshSkillUI"))
+            {
+                player.Call("RefreshSkillUI");
+            }
+        }
     }
 
     public void AddScore(int points) => Score += points;
