@@ -26,6 +26,30 @@ public partial class LevelManager : Node2D
         CollectCheckpoints();
         SpawnPlayer();
         ConnectPlayerSignals();
+
+        if (LevelNumber == 1)
+        {
+            SpawnLevel1CustomTraps();
+        }
+    }
+
+    private void SpawnLevel1CustomTraps()
+    {
+        // Sinh 3 đá rơi bất ngờ (rơi từ trên cao màn hình xuống)
+        var rock1 = new FallingRockTrap();
+        rock1.Position = new Vector2(750, -50); // Rơi ngay bãi Spike đầu tiên
+        rock1.TriggerRange = 600f;              // Kéo dài vùng để thấy player chạy tới
+        AddChild(rock1);
+
+        var rock2 = new FallingRockTrap();
+        rock2.Position = new Vector2(1750, 0); 
+        rock2.TriggerRange = 550f;
+        AddChild(rock2);
+
+        var rock3 = new FallingRockTrap();
+        rock3.Position = new Vector2(3000, -100); 
+        rock3.TriggerRange = 650f;
+        AddChild(rock3);
     }
 
     private void CollectCheckpoints()
