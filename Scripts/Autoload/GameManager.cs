@@ -172,7 +172,7 @@ public partial class GameManager : Node
 
     // ── Game Flow Logic ──────────────────────────────────────────────────────
     public void StartIntro() { ResetStats(); ChangeSceneWithTransition("res://Scenes/Main/Intro.tscn", false); }
-    public void StartGame() => LoadLevel(1);
+    public void StartGame() { ResetStats(); LoadLevel(1); }
     public void LoadLevel(int level)
     {
         if (level > _levelPaths.Length) { WinGame(); return; }
