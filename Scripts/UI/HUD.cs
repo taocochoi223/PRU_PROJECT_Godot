@@ -11,6 +11,7 @@ public partial class HUD : CanvasLayer
     private Button _pauseButton;
     private Button _resumeButton;
     private Button _exitButton;
+    private Label _keysLabel; // Label hiển thị số chìa khóa
     private Player _player;
 
     public override void _Ready()
@@ -47,6 +48,15 @@ public partial class HUD : CanvasLayer
         _livesLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
         
         healthSection.AddChild(_livesLabel);
+
+        // ── 0.1 HIỂN THỊ CHÌA KHÓA (Keys) ───────────────────
+        _keysLabel = new Label();
+        _keysLabel.AddThemeFontSizeOverride("font_size", 18);
+        _keysLabel.HorizontalAlignment = HorizontalAlignment.Left;
+        _keysLabel.AddThemeColorOverride("font_color", new Color(1, 0.9f, 0.2f)); // Màu vàng kim
+        _keysLabel.AddThemeConstantOverride("outline_size", 3);
+        _keysLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+        healthSection.AddChild(_keysLabel);
 
         // ── 1. NÚT DỪNG GAME (Pause) ──────────────────────────
         _pauseButton = new Button();
@@ -240,6 +250,13 @@ public partial class HUD : CanvasLayer
             string hearts = "";
             for (int i = 0; i < GameManager.Instance.PlayerLives; i++) hearts += "❤️ ";
             _livesLabel.Text = hearts.Trim();
+        }
+
+        if (_keysLabel != null)
+        {
+            _keysLabel.Text = $"🗝️ Chìa khóa: {GameManager.Instance.TotalKeys} / 3";
+            // Chỉ hiện số chìa khóa khi đã nhặt được ít nhất 1 chìa
+            _keysLabel.Visible = GameManager.Instance.TotalKeys > 0;
         }
     }
 

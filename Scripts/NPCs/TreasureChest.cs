@@ -272,8 +272,8 @@ public partial class TreasureChest : Area2D
         AddChild(_keyVisual);
 
         var rewardSprite = new Sprite2D();
-        // Sử dụng hàm PrepareAxeTexture của Player để lấy texture xịn không nền
-        string skillPath = "res://Assets/Sprites/Player/Skill_1.png";
+        // Sử dụng icon Chìa Khóa Vàng mới tạo
+        string skillPath = "res://Assets/Sprites/Environment/gold_key.png";
         var tex = GD.Load<Texture2D>(skillPath);
 
         if (tex != null)
@@ -461,6 +461,9 @@ public partial class TreasureChest : Area2D
 
     private void ShowRewardPopups(Player player)
     {
+        // guard: if chest is already disposed or player invalid, skip popup
+        if (!IsInstanceValid(this) || player == null || !IsInstanceValid(player)) return;
+
         _currentPlayer = player;
         _popupSlide = 1;
 
@@ -544,20 +547,8 @@ public partial class TreasureChest : Area2D
         UpdatePopupText();
 
         // immediately add input listeners so player can press keys or click at any moment
-        var listener = new Control();
-        listener.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        _popupOverlay.AddChild(listener);
-        listener.GuiInput += (ev) =>
-        {
-            if (ev is InputEventMouseButton mb && mb.Pressed)
-            {
-                if (!IsInstanceValid(this)) return;
-                OnNextSlide();
-            }
-        };
-
-        var keyHandler = new Node();
-        keyHandler.SetScript(GD.Load<Script>("res://Scripts/NPCs/PopupInputHelper.cs") ?? null);
+        var keyHandler = new PopupInputHelper();
+        keyHandler.Target = this;
         _popupOverlay.AddChild(keyHandler);
     }
 
