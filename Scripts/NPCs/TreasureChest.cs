@@ -17,12 +17,21 @@ public partial class TreasureChest : Area2D
     private TextureRect _popupInfographic;
     private ColorRect _popupSkillCard;
     private TextureRect _popupSkillIcon;
+    private ReferenceRect _popupSkillBorder;
+    private ColorRect _popupSkillGlowBar;
+    private ColorRect _popupSkillAccentLine;
+    private ColorRect _popupSkillIconFrame;
+    private Label _popupSkillTag;
+    private CpuParticles2D _popupSkillParticles;
+    private ColorRect _popupHotkeyPill;
+    private Label _popupHotkeyPillLabel;
     private Label _popupSkillTitle;
     private Label _popupSkillHotkey;
     private Label _popupSkillBody;
     private Label _popupSkillCooldown;
     private Player _currentPlayer;
     private Tween _typewriterTween;
+    private Tween _skillCardPulseTween;
     private bool _isTypewriting = false;
 
     private readonly struct SkillCardData
@@ -585,52 +594,125 @@ public partial class TreasureChest : Area2D
         _popupSkillCard.Color = new Color(0.02f, 0.05f, 0.09f, 0.97f);
         panel.AddChild(_popupSkillCard);
 
-        var border = new ReferenceRect();
-        border.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        border.BorderWidth = 3f;
-        border.BorderColor = new Color(0.3f, 0.95f, 1f, 0.95f);
-        border.EditorOnly = false;
-        _popupSkillCard.AddChild(border);
+        var bgDepth = new ColorRect();
+        bgDepth.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        bgDepth.Color = new Color(0.01f, 0.02f, 0.05f, 0.45f);
+        _popupSkillCard.AddChild(bgDepth);
 
-        var glow = new ColorRect();
-        glow.Size = new Vector2(860, 56);
-        glow.Color = new Color(0.18f, 0.8f, 1f, 0.15f);
-        _popupSkillCard.AddChild(glow);
+        _popupSkillGlowBar = new ColorRect();
+        _popupSkillGlowBar.Size = new Vector2(860, 58);
+        _popupSkillGlowBar.Color = new Color(0.18f, 0.8f, 1f, 0.16f);
+        _popupSkillCard.AddChild(_popupSkillGlowBar);
+
+        _popupSkillAccentLine = new ColorRect();
+        _popupSkillAccentLine.Position = new Vector2(14, 20);
+        _popupSkillAccentLine.Size = new Vector2(6, 280);
+        _popupSkillAccentLine.Color = new Color(0.3f, 0.95f, 1f, 0.9f);
+        _popupSkillCard.AddChild(_popupSkillAccentLine);
+
+        _popupSkillBorder = new ReferenceRect();
+        _popupSkillBorder.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        _popupSkillBorder.BorderWidth = 3f;
+        _popupSkillBorder.BorderColor = new Color(0.3f, 0.95f, 1f, 0.95f);
+        _popupSkillBorder.EditorOnly = false;
+        _popupSkillCard.AddChild(_popupSkillBorder);
+
+        _popupSkillIconFrame = new ColorRect();
+        _popupSkillIconFrame.Position = new Vector2(30, 78);
+        _popupSkillIconFrame.Size = new Vector2(188, 188);
+        _popupSkillIconFrame.Color = new Color(0.08f, 0.15f, 0.2f, 0.9f);
+        _popupSkillCard.AddChild(_popupSkillIconFrame);
+
+        var iconFrameBorder = new ReferenceRect();
+        iconFrameBorder.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        iconFrameBorder.BorderWidth = 2.5f;
+        iconFrameBorder.BorderColor = new Color(0.4f, 0.95f, 1f, 0.95f);
+        iconFrameBorder.EditorOnly = false;
+        _popupSkillIconFrame.AddChild(iconFrameBorder);
 
         _popupSkillIcon = new TextureRect();
-        _popupSkillIcon.Position = new Vector2(30, 82);
-        _popupSkillIcon.Size = new Vector2(180, 180);
+        _popupSkillIcon.Position = new Vector2(40, 88);
+        _popupSkillIcon.Size = new Vector2(168, 168);
         _popupSkillIcon.ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize;
         _popupSkillIcon.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
+        _popupSkillIcon.TextureFilter = Control.TextureFilterEnum.Linear;
         _popupSkillCard.AddChild(_popupSkillIcon);
 
+        // subtle particle emitter around the icon (one-shot burst)
+        _popupSkillParticles = new CpuParticles2D();
+        _popupSkillParticles.Amount = 20;
+        _popupSkillParticles.Lifetime = 0.8f;
+        _popupSkillParticles.OneShot = true;
+        _popupSkillParticles.EmissionShape = CpuParticles2D.EmissionShapeEnum.Sphere;
+        _popupSkillParticles.EmissionSphereRadius = 40f;
+        _popupSkillParticles.InitialVelocityMin = 18f;
+        _popupSkillParticles.InitialVelocityMax = 60f;
+        _popupSkillParticles.ScaleAmountMin = 0.6f;
+        _popupSkillParticles.ScaleAmountMax = 1.2f;
+        _popupSkillParticles.Color = new Color(0.6f, 0.95f, 1f, 0.95f);
+        _popupSkillParticles.Position = new Vector2(124, 172);
+        _popupSkillCard.AddChild(_popupSkillParticles);
+
+        // hotkey pill badge (right side)
+        _popupHotkeyPill = new ColorRect();
+        _popupHotkeyPill.Position = new Vector2(768, 36);
+        _popupHotkeyPill.Size = new Vector2(110, 44);
+        _popupHotkeyPill.Color = new Color(0.06f, 0.12f, 0.14f, 0.95f);
+        _popupSkillCard.AddChild(_popupHotkeyPill);
+
+        _popupHotkeyPillLabel = new Label();
+        _popupHotkeyPillLabel.Position = new Vector2(768, 36);
+        _popupHotkeyPillLabel.Size = new Vector2(110, 44);
+        _popupHotkeyPillLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        _popupHotkeyPillLabel.VerticalAlignment = VerticalAlignment.Center;
+        _popupHotkeyPillLabel.AddThemeFontSizeOverride("font_size", 18);
+        _popupHotkeyPillLabel.AddThemeColorOverride("font_color", new Color(0.86f, 0.96f, 1f));
+        _popupSkillCard.AddChild(_popupHotkeyPillLabel);
+
+        _popupSkillTag = new Label();
+        _popupSkillTag.Position = new Vector2(240, 10);
+        _popupSkillTag.Size = new Vector2(250, 26);
+        _popupSkillTag.Text = "MỞ KHÓA KỸ NĂNG";
+        _popupSkillTag.AddThemeFontSizeOverride("font_size", 16);
+        _popupSkillTag.AddThemeColorOverride("font_color", new Color(0.46f, 0.95f, 1f, 1f));
+        _popupSkillTag.AddThemeConstantOverride("outline_size", 2);
+        _popupSkillTag.AddThemeColorOverride("font_outline_color", new Color(0.01f, 0.04f, 0.07f, 1f));
+        _popupSkillCard.AddChild(_popupSkillTag);
+
         _popupSkillTitle = new Label();
-        _popupSkillTitle.Position = new Vector2(240, 26);
-        _popupSkillTitle.Size = new Vector2(580, 44);
-        _popupSkillTitle.AddThemeFontSizeOverride("font_size", 34);
+        _popupSkillTitle.Position = new Vector2(240, 34);
+        _popupSkillTitle.Size = new Vector2(590, 48);
+        _popupSkillTitle.AddThemeFontSizeOverride("font_size", 36);
         _popupSkillTitle.AddThemeColorOverride("font_color", new Color(0.9f, 0.97f, 1f, 1f));
+        _popupSkillTitle.AddThemeConstantOverride("outline_size", 3);
+        _popupSkillTitle.AddThemeColorOverride("font_outline_color", new Color(0.01f, 0.04f, 0.07f, 1f));
         _popupSkillCard.AddChild(_popupSkillTitle);
 
         _popupSkillHotkey = new Label();
-        _popupSkillHotkey.Position = new Vector2(240, 76);
-        _popupSkillHotkey.Size = new Vector2(580, 34);
-        _popupSkillHotkey.AddThemeFontSizeOverride("font_size", 24);
+        _popupSkillHotkey.Position = new Vector2(240, 84);
+        _popupSkillHotkey.Size = new Vector2(590, 32);
+        _popupSkillHotkey.AddThemeFontSizeOverride("font_size", 26);
         _popupSkillHotkey.AddThemeColorOverride("font_color", new Color(0.5f, 0.95f, 1f, 1f));
+        _popupSkillHotkey.AddThemeConstantOverride("outline_size", 2);
+        _popupSkillHotkey.AddThemeColorOverride("font_outline_color", new Color(0.01f, 0.04f, 0.07f, 1f));
         _popupSkillCard.AddChild(_popupSkillHotkey);
 
         _popupSkillBody = new Label();
-        _popupSkillBody.Position = new Vector2(240, 124);
-        _popupSkillBody.Size = new Vector2(580, 132);
+        _popupSkillBody.Position = new Vector2(240, 126);
+        _popupSkillBody.Size = new Vector2(590, 120);
         _popupSkillBody.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        _popupSkillBody.AddThemeFontSizeOverride("font_size", 24);
+        _popupSkillBody.AddThemeFontSizeOverride("font_size", 22);
         _popupSkillBody.AddThemeColorOverride("font_color", new Color(0.86f, 0.93f, 1f, 1f));
+        _popupSkillBody.AddThemeConstantOverride("line_spacing", 5);
         _popupSkillCard.AddChild(_popupSkillBody);
 
         _popupSkillCooldown = new Label();
-        _popupSkillCooldown.Position = new Vector2(240, 268);
-        _popupSkillCooldown.Size = new Vector2(580, 34);
-        _popupSkillCooldown.AddThemeFontSizeOverride("font_size", 22);
+        _popupSkillCooldown.Position = new Vector2(240, 258);
+        _popupSkillCooldown.Size = new Vector2(590, 36);
+        _popupSkillCooldown.AddThemeFontSizeOverride("font_size", 25);
         _popupSkillCooldown.AddThemeColorOverride("font_color", new Color(1f, 0.84f, 0.25f, 1f));
+        _popupSkillCooldown.AddThemeConstantOverride("outline_size", 2);
+        _popupSkillCooldown.AddThemeColorOverride("font_outline_color", new Color(0.2f, 0.1f, 0.02f, 1f));
         _popupSkillCard.AddChild(_popupSkillCooldown);
     }
 
@@ -654,10 +736,51 @@ public partial class TreasureChest : Area2D
         _popupSkillIcon.Texture = iconTex;
 
         _popupSkillCard.Color = new Color(data.Accent.R * 0.10f, data.Accent.G * 0.10f, data.Accent.B * 0.16f, 0.97f);
-        if (_popupSkillCard.GetChild(0) is ReferenceRect border)
+        _popupSkillBorder.BorderColor = new Color(data.Accent.R, data.Accent.G, data.Accent.B, 0.95f);
+        _popupSkillGlowBar.Color = new Color(data.Accent.R, data.Accent.G, data.Accent.B, 0.16f);
+        _popupSkillAccentLine.Color = new Color(data.Accent.R, data.Accent.G, data.Accent.B, 0.95f);
+        _popupSkillTag.AddThemeColorOverride("font_color", new Color(data.Accent.R, data.Accent.G, data.Accent.B, 1f));
+
+        _popupSkillCard.Modulate = new Color(1, 1, 1, 0f);
+        _popupSkillCard.Scale = new Vector2(0.97f, 0.97f);
+        _popupSkillCard.PivotOffset = _popupSkillCard.Size / 2f;
+
+        var appearTween = CreateTween().SetParallel(true);
+        appearTween.TweenProperty(_popupSkillCard, "modulate:a", 1f, 0.22f);
+        appearTween.TweenProperty(_popupSkillCard, "scale", new Vector2(1f, 1f), 0.26f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+
+        if (_skillCardPulseTween != null) _skillCardPulseTween.Kill();
+        _skillCardPulseTween = CreateTween().SetLoops();
+        _skillCardPulseTween.TweenProperty(_popupSkillGlowBar, "modulate:a", 1f, 0.8f);
+        _skillCardPulseTween.TweenProperty(_popupSkillGlowBar, "modulate:a", 0.55f, 0.8f);
+
+        // Update hotkey pill text and color
+        if (_popupHotkeyPill != null && _popupHotkeyPillLabel != null)
         {
-            border.BorderColor = new Color(data.Accent.R, data.Accent.G, data.Accent.B, 0.95f);
+            _popupHotkeyPillLabel.Text = data.Hotkey.Replace("Bấm ", "");
+            _popupHotkeyPill.Color = new Color(data.Accent.R * 0.12f, data.Accent.G * 0.12f, data.Accent.B * 0.12f, 0.98f);
+            _popupHotkeyPillLabel.AddThemeColorOverride("font_color", new Color(0.92f, 0.98f, 1f));
         }
+
+        // Border flash for cinematic feel
+        var flashTween = CreateTween();
+        var original = _popupSkillBorder.BorderColor;
+        flashTween.TweenProperty(_popupSkillBorder, "border_color", Colors.White, 0.08f);
+        flashTween.TweenCallback(Callable.From(() =>
+        {
+            var back = CreateTween();
+            back.TweenProperty(_popupSkillBorder, "border_color", original, 0.18f);
+        }));
+
+        // Emit particles matching accent
+        if (_popupSkillParticles != null)
+        {
+            _popupSkillParticles.Color = new Color(data.Accent.R, data.Accent.G, data.Accent.B, 0.95f);
+            _popupSkillParticles.Emitting = true;
+        }
+
+        // initial state for hotkey pill
+        _popupHotkeyPill.Modulate = new Color(1, 1, 1, 0.95f);
     }
 
     private SkillCardData GetSkillCardData(string skillCode)
@@ -667,7 +790,7 @@ public partial class TreasureChest : Area2D
             "J" => new SkillCardData(
                 "BƯỚC 3 • CHIÊU J: RÌU BAY",
                 "Bấm J hoặc phím 1",
-                "Ném rìu thần truy đuổi mục tiêu gần nhất. Mở giao tranh từ xa, an toàn và rất mượt cho người mới.",
+                "Ném rìu thần tự khóa mục tiêu gần nhất. Cực hợp để mở giao tranh từ xa, giữ nhịp an toàn cho người mới.",
                 "Hồi chiêu: 4 giây",
                 "res://Assets/Sprites/Player/Skill_1.png",
                 new Color(0.2f, 0.88f, 1f)
@@ -675,7 +798,7 @@ public partial class TreasureChest : Area2D
             "K" => new SkillCardData(
                 "CHIÊU K: LỐC XOÁY CẬN CHIẾN",
                 "Bấm K hoặc phím 2",
-                "Xoay liên hoàn trong vài giây, gây sát thương diện rộng. Dùng khi bị quây đông để dọn bãi nhanh.",
+                "Xoay liên hoàn gây sát thương diện rộng trong vài giây. Dùng khi bị quây đông để phá vòng vây ngay lập tức.",
                 "Hồi chiêu: 6 giây",
                 "res://Assets/Sprites/Player/Skill_2.png",
                 new Color(1f, 0.45f, 0.25f)
@@ -683,7 +806,7 @@ public partial class TreasureChest : Area2D
             "L" => new SkillCardData(
                 "CHIÊU L: ĐỊA CHẤN",
                 "Bấm L hoặc phím 3",
-                "Nện đất gây nổ lực cực mạnh, khống chế khu vực rộng. Đây là skill kết liễu khi vào trận khó.",
+                "Nện đất tạo địa chấn cực mạnh, khống chế vùng rộng. Để dành cho pha dồn sát thương hoặc kết liễu giao tranh khó.",
                 "Hồi chiêu: 20 giây",
                 "res://Assets/Sprites/Player/Skill_3.png",
                 new Color(0.84f, 0.35f, 1f)
@@ -703,44 +826,77 @@ public partial class TreasureChest : Area2D
     {
         var tex = GD.Load<Texture2D>(path);
         if (tex == null) return null;
-
         Image img = tex.GetImage();
         if (img == null) return tex;
 
         img.Decompress();
         img.Convert(Image.Format.Rgba8);
-        Color bgColor = img.GetPixel(0, 0);
 
-        for (int y = 0; y < img.GetHeight(); y++)
+        int w = img.GetWidth();
+        int h = img.GetHeight();
+        if (w == 0 || h == 0) return tex;
+
+        // Sample border pixels to estimate background color
+        double r = 0, g = 0, b = 0;
+        int count = 0;
+        int step = Math.Max(1, Math.Min(w, h) / 20);
+
+        for (int x = 0; x < w; x += step)
         {
-            for (int x = 0; x < img.GetWidth(); x++)
-            {
-                Color p = img.GetPixel(x, y);
-                float diff = Mathf.Sqrt(
-                    Mathf.Pow(p.R - bgColor.R, 2) +
-                    Mathf.Pow(p.G - bgColor.G, 2) +
-                    Mathf.Pow(p.B - bgColor.B, 2)
-                );
+            var c1 = img.GetPixel(x, 0);
+            if (c1.A > 0.02f) { r += c1.R; g += c1.G; b += c1.B; count++; }
+            var c2 = img.GetPixel(x, h - 1);
+            if (c2.A > 0.02f) { r += c2.R; g += c2.G; b += c2.B; count++; }
+        }
+        for (int y = 0; y < h; y += step)
+        {
+            var c1 = img.GetPixel(0, y);
+            if (c1.A > 0.02f) { r += c1.R; g += c1.G; b += c1.B; count++; }
+            var c2 = img.GetPixel(w - 1, y);
+            if (c2.A > 0.02f) { r += c2.R; g += c2.G; b += c2.B; count++; }
+        }
 
-                if (diff < 0.18f)
-                {
-                    img.SetPixel(x, y, new Color(0, 0, 0, 0));
-                }
+        if (count == 0)
+        {
+            return ImageTexture.CreateFromImage(img);
+        }
+
+        var borderAvg = new Color((float)(r / count), (float)(g / count), (float)(b / count));
+
+        // Estimate typical variation along border to set an adaptive tolerance
+        double sumDist = 0;
+        int sampleCount = 0;
+        for (int x = 0; x < w; x += step)
+        {
+            var c = img.GetPixel(x, 0);
+            if (c.A > 0.02f) { sumDist += Math.Sqrt(Math.Pow(c.R - borderAvg.R, 2) + Math.Pow(c.G - borderAvg.G, 2) + Math.Pow(c.B - borderAvg.B, 2)); sampleCount++; }
+            c = img.GetPixel(x, h - 1);
+            if (c.A > 0.02f) { sumDist += Math.Sqrt(Math.Pow(c.R - borderAvg.R, 2) + Math.Pow(c.G - borderAvg.G, 2) + Math.Pow(c.B - borderAvg.B, 2)); sampleCount++; }
+        }
+        for (int y = 0; y < h; y += step)
+        {
+            var c = img.GetPixel(0, y);
+            if (c.A > 0.02f) { sumDist += Math.Sqrt(Math.Pow(c.R - borderAvg.R, 2) + Math.Pow(c.G - borderAvg.G, 2) + Math.Pow(c.B - borderAvg.B, 2)); sampleCount++; }
+            c = img.GetPixel(w - 1, y);
+            if (c.A > 0.02f) { sumDist += Math.Sqrt(Math.Pow(c.R - borderAvg.R, 2) + Math.Pow(c.G - borderAvg.G, 2) + Math.Pow(c.B - borderAvg.B, 2)); sampleCount++; }
+        }
+
+        double avgDist = sampleCount > 0 ? (sumDist / sampleCount) : 0.04;
+        double tol = Math.Max(0.06, avgDist * 1.8); // adaptive tolerance
+
+        // Remove pixels close to border average color (preserve already transparent pixels)
+        for (int y = 0; y < h; y++)
+        {
+            for (int x = 0; x < w; x++)
+            {
+                var p = img.GetPixel(x, y);
+                if (p.A < 0.02f) continue;
+                double dist = Math.Sqrt(Math.Pow(p.R - borderAvg.R, 2) + Math.Pow(p.G - borderAvg.G, 2) + Math.Pow(p.B - borderAvg.B, 2));
+                if (dist < tol) img.SetPixel(x, y, new Color(0, 0, 0, 0));
             }
         }
 
         return ImageTexture.CreateFromImage(img);
-
-        if (tex != null)
-        {
-            _popupInfographic.Texture = tex;
-        }
-        else
-        {
-            _popupContentLabel.Visible = true;
-            _popupContentLabel.Text = $"KỸ NĂNG MỚI\n\n[ Không tìm thấy ảnh tại {path} ]";
-            _popupContentLabel.AddThemeColorOverride("font_color", Colors.Red);
-        }
     }
 
     private void RunTypewriter(int length)
