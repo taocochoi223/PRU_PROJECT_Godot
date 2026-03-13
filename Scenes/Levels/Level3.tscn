@@ -14,6 +14,8 @@
 [ext_resource type="PackedScene" uid="uid://levelexit001" path="res://Scenes/Objects/LevelExit.tscn" id="12"]
 [ext_resource type="PackedScene" uid="uid://chantinh001" path="res://Scenes/Enemies/ChanTinh.tscn" id="13"]
 [ext_resource type="PackedScene" uid="uid://spike001" path="res://Scenes/Hazards/SpikeHazard.tscn" id="14"]
+[ext_resource type="Script" path="res://Scripts/Hazards/RockSpawner.cs" id="15"]
+[ext_resource type="PackedScene" uid="uid://rock001" path="res://Scenes/Hazards/RollingRock.tscn" id="16"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(4000, 100)
@@ -22,6 +24,7 @@ size = Vector2(4000, 100)
 size = Vector2(120, 20)
 
 [node name="Level3" type="Node2D" unique_id=1539065662]
+position = Vector2(4, 8)
 script = ExtResource("1")
 LevelNumber = 3
 PlayerScene = ExtResource("5")
@@ -30,31 +33,26 @@ PlayerScene = ExtResource("5")
 position = Vector2(576, 324)
 script = ExtResource("4")
 
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 1: BẦU TRỜI ĐÊM U ÁM — MẶT TRĂNG MÁU ███
-; ═══════════════════════════════════════════════════════════════
-
-[node name="Sky_Deep" type="ColorRect" parent="."]
+[node name="Sky_Deep" type="ColorRect" parent="." unique_id=867883842]
 z_index = -20
 offset_right = 4001.0
 offset_bottom = 800.0
 color = Color(0.05, 0.02, 0.08, 1)
 
-[node name="Sky_BloodGlow" type="ColorRect" parent="."]
+[node name="Sky_BloodGlow" type="ColorRect" parent="." unique_id=973540810]
 z_index = -19
 offset_right = 4001.0
 offset_bottom = 300.0
 color = Color(0.15, 0.02, 0.03, 0.6)
 
-[node name="Sky_Horizon" type="ColorRect" parent="."]
+[node name="Sky_Horizon" type="ColorRect" parent="." unique_id=701177425]
 z_index = -19
 offset_top = 300.0
 offset_right = 4001.0
 offset_bottom = 500.0
 color = Color(0.08, 0.02, 0.05, 0.7)
 
-; ── Mặt trăng máu (Blood Moon) ──
-[node name="MoonGlow" type="ColorRect" parent="."]
+[node name="MoonGlow" type="ColorRect" parent="." unique_id=1489391983]
 z_index = -18
 offset_left = 120.0
 offset_top = 15.0
@@ -62,7 +60,7 @@ offset_right = 230.0
 offset_bottom = 125.0
 color = Color(0.6, 0.08, 0.05, 0.25)
 
-[node name="Moon" type="ColorRect" parent="."]
+[node name="Moon" type="ColorRect" parent="." unique_id=767892520]
 z_index = -17
 offset_left = 140.0
 offset_top = 30.0
@@ -70,7 +68,7 @@ offset_right = 210.0
 offset_bottom = 100.0
 color = Color(0.85, 0.15, 0.08, 0.9)
 
-[node name="MoonInner" type="ColorRect" parent="."]
+[node name="MoonInner" type="ColorRect" parent="." unique_id=513329674]
 z_index = -16
 offset_left = 148.0
 offset_top = 38.0
@@ -78,8 +76,7 @@ offset_right = 202.0
 offset_bottom = 92.0
 color = Color(1, 0.3, 0.15, 0.7)
 
-; ── Sao lấp lánh trong bầu trời tối ──
-[node name="Star1" type="ColorRect" parent="."]
+[node name="Star1" type="ColorRect" parent="." unique_id=1984017516]
 z_index = -16
 offset_left = 350.0
 offset_top = 25.0
@@ -87,7 +84,7 @@ offset_right = 354.0
 offset_bottom = 29.0
 color = Color(1, 0.8, 0.6, 0.5)
 
-[node name="Star2" type="ColorRect" parent="."]
+[node name="Star2" type="ColorRect" parent="." unique_id=1257199580]
 z_index = -16
 offset_left = 750.0
 offset_top = 50.0
@@ -95,7 +92,7 @@ offset_right = 753.0
 offset_bottom = 53.0
 color = Color(1, 0.7, 0.5, 0.4)
 
-[node name="Star3" type="ColorRect" parent="."]
+[node name="Star3" type="ColorRect" parent="." unique_id=444757937]
 z_index = -16
 offset_left = 1100.0
 offset_top = 18.0
@@ -103,7 +100,7 @@ offset_right = 1105.0
 offset_bottom = 23.0
 color = Color(1, 0.6, 0.4, 0.6)
 
-[node name="Star4" type="ColorRect" parent="."]
+[node name="Star4" type="ColorRect" parent="." unique_id=1636815200]
 z_index = -16
 offset_left = 1500.0
 offset_top = 55.0
@@ -111,7 +108,7 @@ offset_right = 1503.0
 offset_bottom = 58.0
 color = Color(1, 0.9, 0.7, 0.3)
 
-[node name="Star5" type="ColorRect" parent="."]
+[node name="Star5" type="ColorRect" parent="." unique_id=417834151]
 z_index = -16
 offset_left = 1900.0
 offset_top = 30.0
@@ -119,7 +116,7 @@ offset_right = 1904.0
 offset_bottom = 34.0
 color = Color(1, 0.5, 0.3, 0.5)
 
-[node name="Star6" type="ColorRect" parent="."]
+[node name="Star6" type="ColorRect" parent="." unique_id=781915931]
 z_index = -16
 offset_left = 600.0
 offset_top = 70.0
@@ -127,7 +124,7 @@ offset_right = 603.0
 offset_bottom = 73.0
 color = Color(1, 0.6, 0.4, 0.35)
 
-[node name="Star7" type="ColorRect" parent="."]
+[node name="Star7" type="ColorRect" parent="." unique_id=1868366590]
 z_index = -16
 offset_left = 2300.0
 offset_top = 40.0
@@ -135,12 +132,7 @@ offset_right = 2304.0
 offset_bottom = 44.0
 color = Color(1, 0.7, 0.5, 0.4)
 
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 2: DÃY NÚI XA & RỪNG TỐI ███
-; ═══════════════════════════════════════════════════════════════
-
-; ── Núi xa mờ ──
-[node name="Mountain1" type="ColorRect" parent="."]
+[node name="Mountain1" type="ColorRect" parent="." unique_id=1446271619]
 z_index = -15
 offset_left = -50.0
 offset_top = 200.0
@@ -148,7 +140,7 @@ offset_right = 400.0
 offset_bottom = 500.0
 color = Color(0.06, 0.03, 0.08, 0.8)
 
-[node name="Mountain2" type="ColorRect" parent="."]
+[node name="Mountain2" type="ColorRect" parent="." unique_id=1724514718]
 z_index = -15
 offset_left = 300.0
 offset_top = 250.0
@@ -156,7 +148,7 @@ offset_right = 800.0
 offset_bottom = 500.0
 color = Color(0.05, 0.02, 0.07, 0.7)
 
-[node name="Mountain3" type="ColorRect" parent="."]
+[node name="Mountain3" type="ColorRect" parent="." unique_id=1936604863]
 z_index = -15
 offset_left = 700.0
 offset_top = 220.0
@@ -164,7 +156,7 @@ offset_right = 1200.0
 offset_bottom = 500.0
 color = Color(0.07, 0.03, 0.09, 0.75)
 
-[node name="Mountain4" type="ColorRect" parent="."]
+[node name="Mountain4" type="ColorRect" parent="." unique_id=769407374]
 z_index = -15
 offset_left = 1100.0
 offset_top = 260.0
@@ -172,7 +164,7 @@ offset_right = 1700.0
 offset_bottom = 500.0
 color = Color(0.04, 0.02, 0.06, 0.8)
 
-[node name="Mountain5" type="ColorRect" parent="."]
+[node name="Mountain5" type="ColorRect" parent="." unique_id=2145672566]
 z_index = -15
 offset_left = 1600.0
 offset_top = 230.0
@@ -180,8 +172,7 @@ offset_right = 2200.0
 offset_bottom = 500.0
 color = Color(0.06, 0.02, 0.08, 0.7)
 
-; ── Rừng tối phía sau ──
-[node name="ForestDark1" type="ColorRect" parent="."]
+[node name="ForestDark1" type="ColorRect" parent="." unique_id=577035625]
 z_index = -13
 offset_left = -20.0
 offset_top = 350.0
@@ -189,7 +180,7 @@ offset_right = 500.0
 offset_bottom = 600.0
 color = Color(0.03, 0.05, 0.02, 0.9)
 
-[node name="ForestDark2" type="ColorRect" parent="."]
+[node name="ForestDark2" type="ColorRect" parent="." unique_id=378034547]
 z_index = -13
 offset_left = 400.0
 offset_top = 380.0
@@ -197,7 +188,7 @@ offset_right = 1000.0
 offset_bottom = 600.0
 color = Color(0.04, 0.06, 0.03, 0.85)
 
-[node name="ForestDark3" type="ColorRect" parent="."]
+[node name="ForestDark3" type="ColorRect" parent="." unique_id=608413014]
 z_index = -13
 offset_left = 900.0
 offset_top = 360.0
@@ -205,7 +196,7 @@ offset_right = 1500.0
 offset_bottom = 600.0
 color = Color(0.03, 0.04, 0.02, 0.9)
 
-[node name="ForestDark4" type="ColorRect" parent="."]
+[node name="ForestDark4" type="ColorRect" parent="." unique_id=315510969]
 z_index = -13
 offset_left = 1400.0
 offset_top = 370.0
@@ -213,29 +204,21 @@ offset_right = 2100.0
 offset_bottom = 600.0
 color = Color(0.04, 0.05, 0.03, 0.85)
 
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 3: SÀO HUYỆT CHẰN TINH — CỔNG ĐÁ & LỬA ███
-; ═══════════════════════════════════════════════════════════════
-
-; ── Vách đá lớn hang Chằn Tinh ──
-[node name="BossCliff_Base" type="ColorRect" parent="."]
+[node name="BossCliff_Base" type="ColorRect" parent="." unique_id=878543447]
 z_index = -5
 offset_left = 2200.0
-offset_top = 0.0
 offset_right = 4001.0
 offset_bottom = 700.0
 color = Color(0.08, 0.04, 0.1, 1)
 
-[node name="BossCliff_Face" type="ColorRect" parent="."]
+[node name="BossCliff_Face" type="ColorRect" parent="." unique_id=1930930353]
 z_index = -4
 offset_left = 2200.0
-offset_top = 0.0
 offset_right = 2650.0
 offset_bottom = 700.0
 color = Color(0.12, 0.06, 0.14, 1)
 
-; ── Cổng hang khổng lồ (trước boss) ──
-[node name="GateLeft" type="ColorRect" parent="."]
+[node name="GateLeft" type="ColorRect" parent="." unique_id=1819351088]
 z_index = -3
 offset_left = 2350.0
 offset_top = 200.0
@@ -243,7 +226,7 @@ offset_right = 2420.0
 offset_bottom = 590.0
 color = Color(0.15, 0.08, 0.18, 1)
 
-[node name="GateRight" type="ColorRect" parent="."]
+[node name="GateRight" type="ColorRect" parent="." unique_id=590554320]
 z_index = -3
 offset_left = 2680.0
 offset_top = 200.0
@@ -251,7 +234,7 @@ offset_right = 2750.0
 offset_bottom = 590.0
 color = Color(0.15, 0.08, 0.18, 1)
 
-[node name="GateArch" type="ColorRect" parent="."]
+[node name="GateArch" type="ColorRect" parent="." unique_id=1679080545]
 z_index = -3
 offset_left = 2350.0
 offset_top = 180.0
@@ -259,7 +242,7 @@ offset_right = 2750.0
 offset_bottom = 230.0
 color = Color(0.18, 0.1, 0.2, 1)
 
-[node name="GateInterior" type="ColorRect" parent="."]
+[node name="GateInterior" type="ColorRect" parent="." unique_id=1201891229]
 z_index = -4
 offset_left = 2420.0
 offset_top = 230.0
@@ -267,8 +250,7 @@ offset_right = 2680.0
 offset_bottom = 590.0
 color = Color(0.04, 0.01, 0.05, 1)
 
-; ── Đuốc lửa cổng trái ──
-[node name="TorchLeft_Pole" type="ColorRect" parent="."]
+[node name="TorchLeft_Pole" type="ColorRect" parent="." unique_id=915598669]
 z_index = -2
 offset_left = 2330.0
 offset_top = 300.0
@@ -276,7 +258,7 @@ offset_right = 2340.0
 offset_bottom = 500.0
 color = Color(0.3, 0.2, 0.1, 1)
 
-[node name="TorchLeft_Flame1" type="ColorRect" parent="."]
+[node name="TorchLeft_Flame1" type="ColorRect" parent="." unique_id=1690678247]
 z_index = -1
 offset_left = 2322.0
 offset_top = 275.0
@@ -284,7 +266,7 @@ offset_right = 2348.0
 offset_bottom = 305.0
 color = Color(1, 0.5, 0.05, 0.9)
 
-[node name="TorchLeft_Flame2" type="ColorRect" parent="."]
+[node name="TorchLeft_Flame2" type="ColorRect" parent="." unique_id=1660087793]
 z_index = -1
 offset_left = 2326.0
 offset_top = 265.0
@@ -292,7 +274,7 @@ offset_right = 2344.0
 offset_bottom = 280.0
 color = Color(1, 0.8, 0.1, 0.8)
 
-[node name="TorchLeft_Glow" type="ColorRect" parent="."]
+[node name="TorchLeft_Glow" type="ColorRect" parent="." unique_id=1261709374]
 z_index = -2
 offset_left = 2290.0
 offset_top = 240.0
@@ -300,8 +282,7 @@ offset_right = 2380.0
 offset_bottom = 340.0
 color = Color(1, 0.3, 0.05, 0.12)
 
-; ── Đuốc lửa cổng phải ──
-[node name="TorchRight_Pole" type="ColorRect" parent="."]
+[node name="TorchRight_Pole" type="ColorRect" parent="." unique_id=523695021]
 z_index = -2
 offset_left = 2760.0
 offset_top = 300.0
@@ -309,7 +290,7 @@ offset_right = 2770.0
 offset_bottom = 500.0
 color = Color(0.3, 0.2, 0.1, 1)
 
-[node name="TorchRight_Flame1" type="ColorRect" parent="."]
+[node name="TorchRight_Flame1" type="ColorRect" parent="." unique_id=1491733805]
 z_index = -1
 offset_left = 2752.0
 offset_top = 275.0
@@ -317,7 +298,7 @@ offset_right = 2778.0
 offset_bottom = 305.0
 color = Color(1, 0.5, 0.05, 0.9)
 
-[node name="TorchRight_Flame2" type="ColorRect" parent="."]
+[node name="TorchRight_Flame2" type="ColorRect" parent="." unique_id=904385306]
 z_index = -1
 offset_left = 2756.0
 offset_top = 265.0
@@ -325,7 +306,7 @@ offset_right = 2774.0
 offset_bottom = 280.0
 color = Color(1, 0.8, 0.1, 0.8)
 
-[node name="TorchRight_Glow" type="ColorRect" parent="."]
+[node name="TorchRight_Glow" type="ColorRect" parent="." unique_id=159523418]
 z_index = -2
 offset_left = 2720.0
 offset_top = 240.0
@@ -333,8 +314,7 @@ offset_right = 2810.0
 offset_bottom = 340.0
 color = Color(1, 0.3, 0.05, 0.12)
 
-; ── Tàn tích — Xương trắng rải rác ──
-[node name="Bone1" type="ColorRect" parent="."]
+[node name="Bone1" type="ColorRect" parent="." unique_id=690004194]
 z_index = -1
 offset_left = 2280.0
 offset_top = 582.0
@@ -342,7 +322,7 @@ offset_right = 2310.0
 offset_bottom = 588.0
 color = Color(0.85, 0.82, 0.75, 0.6)
 
-[node name="Bone2" type="ColorRect" parent="."]
+[node name="Bone2" type="ColorRect" parent="." unique_id=71943811]
 z_index = -1
 offset_left = 2400.0
 offset_top = 584.0
@@ -350,7 +330,7 @@ offset_right = 2420.0
 offset_bottom = 588.0
 color = Color(0.8, 0.78, 0.7, 0.5)
 
-[node name="Bone3" type="ColorRect" parent="."]
+[node name="Bone3" type="ColorRect" parent="." unique_id=1792774136]
 z_index = -1
 offset_left = 2560.0
 offset_top = 583.0
@@ -358,7 +338,7 @@ offset_right = 2585.0
 offset_bottom = 588.0
 color = Color(0.82, 0.8, 0.72, 0.55)
 
-[node name="Skull1" type="ColorRect" parent="."]
+[node name="Skull1" type="ColorRect" parent="." unique_id=2127808330]
 z_index = -1
 offset_left = 2480.0
 offset_top = 576.0
@@ -366,8 +346,7 @@ offset_right = 2496.0
 offset_bottom = 590.0
 color = Color(0.9, 0.85, 0.78, 0.5)
 
-; ── Đuốc tường trong hang ──
-[node name="WallTorch1_Pole" type="ColorRect" parent="."]
+[node name="WallTorch1_Pole" type="ColorRect" parent="." unique_id=151791711]
 z_index = -2
 offset_left = 2850.0
 offset_top = 350.0
@@ -375,7 +354,7 @@ offset_right = 2858.0
 offset_bottom = 470.0
 color = Color(0.25, 0.15, 0.08, 1)
 
-[node name="WallTorch1_Flame" type="ColorRect" parent="."]
+[node name="WallTorch1_Flame" type="ColorRect" parent="." unique_id=1062290526]
 z_index = -1
 offset_left = 2842.0
 offset_top = 328.0
@@ -383,7 +362,7 @@ offset_right = 2866.0
 offset_bottom = 355.0
 color = Color(1, 0.6, 0.1, 0.85)
 
-[node name="WallTorch1_Glow" type="ColorRect" parent="."]
+[node name="WallTorch1_Glow" type="ColorRect" parent="." unique_id=1660549102]
 z_index = -2
 offset_left = 2810.0
 offset_top = 300.0
@@ -391,7 +370,7 @@ offset_right = 2900.0
 offset_bottom = 400.0
 color = Color(1, 0.3, 0.05, 0.08)
 
-[node name="WallTorch2_Pole" type="ColorRect" parent="."]
+[node name="WallTorch2_Pole" type="ColorRect" parent="." unique_id=533610559]
 z_index = -2
 offset_left = 3100.0
 offset_top = 350.0
@@ -399,7 +378,7 @@ offset_right = 3108.0
 offset_bottom = 470.0
 color = Color(0.25, 0.15, 0.08, 1)
 
-[node name="WallTorch2_Flame" type="ColorRect" parent="."]
+[node name="WallTorch2_Flame" type="ColorRect" parent="." unique_id=1890134149]
 z_index = -1
 offset_left = 3092.0
 offset_top = 328.0
@@ -407,7 +386,7 @@ offset_right = 3116.0
 offset_bottom = 355.0
 color = Color(1, 0.6, 0.1, 0.85)
 
-[node name="WallTorch2_Glow" type="ColorRect" parent="."]
+[node name="WallTorch2_Glow" type="ColorRect" parent="." unique_id=321726478]
 z_index = -2
 offset_left = 3060.0
 offset_top = 300.0
@@ -415,12 +394,7 @@ offset_right = 3150.0
 offset_bottom = 400.0
 color = Color(1, 0.3, 0.05, 0.08)
 
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 4: SƯƠNG MÙ & ĐOM ĐÓM ĐỎ ███
-; ═══════════════════════════════════════════════════════════════
-
-; ── Sương mù sàn (Fog) ──
-[node name="Fog_Low1" type="ColorRect" parent="."]
+[node name="Fog_Low1" type="ColorRect" parent="." unique_id=1999926220]
 z_index = -6
 offset_left = -20.0
 offset_top = 520.0
@@ -428,7 +402,7 @@ offset_right = 600.0
 offset_bottom = 600.0
 color = Color(0.15, 0.08, 0.18, 0.2)
 
-[node name="Fog_Low2" type="ColorRect" parent="."]
+[node name="Fog_Low2" type="ColorRect" parent="." unique_id=1654570679]
 z_index = -6
 offset_left = 500.0
 offset_top = 530.0
@@ -436,7 +410,7 @@ offset_right = 1200.0
 offset_bottom = 600.0
 color = Color(0.12, 0.06, 0.15, 0.25)
 
-[node name="Fog_Low3" type="ColorRect" parent="."]
+[node name="Fog_Low3" type="ColorRect" parent="." unique_id=1046628230]
 z_index = -6
 offset_left = 1100.0
 offset_top = 525.0
@@ -444,7 +418,7 @@ offset_right = 1900.0
 offset_bottom = 600.0
 color = Color(0.1, 0.05, 0.13, 0.22)
 
-[node name="Fog_Low4" type="ColorRect" parent="."]
+[node name="Fog_Low4" type="ColorRect" parent="." unique_id=163100621]
 z_index = -6
 offset_left = 1800.0
 offset_top = 510.0
@@ -452,7 +426,7 @@ offset_right = 2800.0
 offset_bottom = 600.0
 color = Color(0.18, 0.05, 0.12, 0.3)
 
-[node name="Fog_Boss" type="ColorRect" parent="."]
+[node name="Fog_Boss" type="ColorRect" parent="." unique_id=495097609]
 z_index = -6
 offset_left = 2600.0
 offset_top = 480.0
@@ -460,8 +434,7 @@ offset_right = 3800.0
 offset_bottom = 600.0
 color = Color(0.2, 0.03, 0.08, 0.35)
 
-; ── Đom đóm đỏ (red fireflies/particles) ──
-[node name="Firefly1" type="ColorRect" parent="."]
+[node name="Firefly1" type="ColorRect" parent="." unique_id=891388266]
 z_index = -5
 offset_left = 200.0
 offset_top = 400.0
@@ -469,7 +442,7 @@ offset_right = 206.0
 offset_bottom = 406.0
 color = Color(1, 0.2, 0.05, 0.7)
 
-[node name="Firefly2" type="ColorRect" parent="."]
+[node name="Firefly2" type="ColorRect" parent="." unique_id=351821010]
 z_index = -5
 offset_left = 550.0
 offset_top = 350.0
@@ -477,7 +450,7 @@ offset_right = 555.0
 offset_bottom = 355.0
 color = Color(1, 0.3, 0.1, 0.6)
 
-[node name="Firefly3" type="ColorRect" parent="."]
+[node name="Firefly3" type="ColorRect" parent="." unique_id=1259872074]
 z_index = -5
 offset_left = 900.0
 offset_top = 430.0
@@ -485,7 +458,7 @@ offset_right = 905.0
 offset_bottom = 435.0
 color = Color(1, 0.15, 0.05, 0.65)
 
-[node name="Firefly4" type="ColorRect" parent="."]
+[node name="Firefly4" type="ColorRect" parent="." unique_id=497784246]
 z_index = -5
 offset_left = 1300.0
 offset_top = 380.0
@@ -493,7 +466,7 @@ offset_right = 1306.0
 offset_bottom = 386.0
 color = Color(1, 0.25, 0.08, 0.7)
 
-[node name="Firefly5" type="ColorRect" parent="."]
+[node name="Firefly5" type="ColorRect" parent="." unique_id=1158299936]
 z_index = -5
 offset_left = 1700.0
 offset_top = 420.0
@@ -501,7 +474,7 @@ offset_right = 1704.0
 offset_bottom = 424.0
 color = Color(1, 0.2, 0.05, 0.6)
 
-[node name="Firefly6" type="ColorRect" parent="."]
+[node name="Firefly6" type="ColorRect" parent="." unique_id=966618927]
 z_index = -5
 offset_left = 2100.0
 offset_top = 370.0
@@ -509,7 +482,7 @@ offset_right = 2106.0
 offset_bottom = 376.0
 color = Color(1, 0.1, 0.05, 0.75)
 
-[node name="Firefly7" type="ColorRect" parent="."]
+[node name="Firefly7" type="ColorRect" parent="." unique_id=1628073512]
 z_index = -5
 offset_left = 450.0
 offset_top = 300.0
@@ -517,7 +490,7 @@ offset_right = 454.0
 offset_bottom = 304.0
 color = Color(1, 0.35, 0.1, 0.5)
 
-[node name="Firefly8" type="ColorRect" parent="."]
+[node name="Firefly8" type="ColorRect" parent="." unique_id=1067713592]
 z_index = -5
 offset_left = 1050.0
 offset_top = 320.0
@@ -525,12 +498,7 @@ offset_right = 1054.0
 offset_bottom = 324.0
 color = Color(1, 0.2, 0.08, 0.55)
 
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 5: CẢNH BÁO — DẤU HIỆU CHẰN TINH ███
-; ═══════════════════════════════════════════════════════════════
-
-; ── Vệt cào trên đá (claw marks) ──
-[node name="ClawMark1" type="ColorRect" parent="."]
+[node name="ClawMark1" type="ColorRect" parent="." unique_id=1519723255]
 z_index = -2
 offset_left = 1950.0
 offset_top = 480.0
@@ -538,7 +506,7 @@ offset_right = 1955.0
 offset_bottom = 560.0
 color = Color(0.3, 0.05, 0.02, 0.6)
 
-[node name="ClawMark2" type="ColorRect" parent="."]
+[node name="ClawMark2" type="ColorRect" parent="." unique_id=1857056797]
 z_index = -2
 offset_left = 1962.0
 offset_top = 490.0
@@ -546,7 +514,7 @@ offset_right = 1967.0
 offset_bottom = 565.0
 color = Color(0.3, 0.05, 0.02, 0.5)
 
-[node name="ClawMark3" type="ColorRect" parent="."]
+[node name="ClawMark3" type="ColorRect" parent="." unique_id=548950754]
 z_index = -2
 offset_left = 1974.0
 offset_top = 485.0
@@ -554,8 +522,7 @@ offset_right = 1979.0
 offset_bottom = 558.0
 color = Color(0.3, 0.05, 0.02, 0.55)
 
-; ── Biển cảnh báo (Warning sign - tàn tích) ──
-[node name="WarningSign_Post" type="ColorRect" parent="."]
+[node name="WarningSign_Post" type="ColorRect" parent="." unique_id=856528625]
 z_index = -1
 offset_left = 2100.0
 offset_top = 490.0
@@ -563,7 +530,7 @@ offset_right = 2110.0
 offset_bottom = 590.0
 color = Color(0.25, 0.15, 0.08, 0.9)
 
-[node name="WarningSign_Board" type="ColorRect" parent="."]
+[node name="WarningSign_Board" type="ColorRect" parent="." unique_id=925873747]
 z_index = -1
 offset_left = 2080.0
 offset_top = 470.0
@@ -571,19 +538,14 @@ offset_right = 2130.0
 offset_bottom = 500.0
 color = Color(0.35, 0.2, 0.1, 0.9)
 
-[node name="WarningSign_Skull" type="ColorRect" parent="."]
-z_index = 0
+[node name="WarningSign_Skull" type="ColorRect" parent="." unique_id=352938042]
 offset_left = 2095.0
 offset_top = 474.0
 offset_right = 2115.0
 offset_bottom = 496.0
 color = Color(0.9, 0.85, 0.78, 0.7)
 
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 6: CASTLE TRANG TRÍ (giữ nguyên Castle cũ, nâng cấp) ███
-; ═══════════════════════════════════════════════════════════════
-
-[node name="CastleWall" type="ColorRect" parent="."]
+[node name="CastleWall" type="ColorRect" parent="." unique_id=1479694517]
 z_index = -3
 offset_left = 2806.0
 offset_top = 186.0
@@ -591,7 +553,7 @@ offset_right = 3506.0
 offset_bottom = 576.0
 color = Color(0.1, 0.05, 0.13, 1)
 
-[node name="CastleTower1" type="ColorRect" parent="."]
+[node name="CastleTower1" type="ColorRect" parent="." unique_id=11256466]
 z_index = -3
 offset_left = 2100.0
 offset_top = 100.0
@@ -599,7 +561,7 @@ offset_right = 2220.0
 offset_bottom = 200.0
 color = Color(0.12, 0.06, 0.15, 1)
 
-[node name="CastleTower2" type="ColorRect" parent="."]
+[node name="CastleTower2" type="ColorRect" parent="." unique_id=434846467]
 z_index = -3
 offset_left = 2600.0
 offset_top = 80.0
@@ -607,7 +569,7 @@ offset_right = 2720.0
 offset_bottom = 200.0
 color = Color(0.12, 0.06, 0.15, 1)
 
-[node name="CastleDoor" type="ColorRect" parent="."]
+[node name="CastleDoor" type="ColorRect" parent="." unique_id=1866819092]
 z_index = -2
 offset_left = 2380.0
 offset_top = 450.0
@@ -615,7 +577,7 @@ offset_right = 2480.0
 offset_bottom = 590.0
 color = Color(0.06, 0.02, 0.08, 1)
 
-[node name="CastleWindow1" type="ColorRect" parent="."]
+[node name="CastleWindow1" type="ColorRect" parent="." unique_id=447883946]
 z_index = -2
 offset_left = 2200.0
 offset_top = 280.0
@@ -623,7 +585,7 @@ offset_right = 2240.0
 offset_bottom = 320.0
 color = Color(0.6, 0.15, 0.05, 0.7)
 
-[node name="CastleWindow2" type="ColorRect" parent="."]
+[node name="CastleWindow2" type="ColorRect" parent="." unique_id=408705273]
 z_index = -2
 offset_left = 2550.0
 offset_top = 280.0
@@ -631,8 +593,7 @@ offset_right = 2590.0
 offset_bottom = 320.0
 color = Color(0.6, 0.15, 0.05, 0.7)
 
-; ── Ánh sáng đỏ rò rỉ từ cửa sổ ──
-[node name="WindowGlow1" type="ColorRect" parent="."]
+[node name="WindowGlow1" type="ColorRect" parent="." unique_id=2047398358]
 z_index = -3
 offset_left = 2185.0
 offset_top = 265.0
@@ -640,17 +601,13 @@ offset_right = 2255.0
 offset_bottom = 335.0
 color = Color(1, 0.15, 0.05, 0.1)
 
-[node name="WindowGlow2" type="ColorRect" parent="."]
+[node name="WindowGlow2" type="ColorRect" parent="." unique_id=781157110]
 z_index = -3
 offset_left = 2535.0
 offset_top = 265.0
 offset_right = 2605.0
 offset_bottom = 335.0
 color = Color(1, 0.15, 0.05, 0.1)
-
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 7: ĐỊA HÌNH — MẶT ĐẤT ███
-; ═══════════════════════════════════════════════════════════════
 
 [node name="Ground" type="StaticBody2D" parent="." unique_id=967837805]
 position = Vector2(2000, 640)
@@ -750,12 +707,8 @@ texture = ExtResource("5_6ggnd")
 region_enabled = true
 region_rect = Rect2(85.14148, 351.68774, 1363.8488, 311.9115)
 
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 8: PLATFORMS ███
-; ═══════════════════════════════════════════════════════════════
-
 [node name="Platform1" type="StaticBody2D" parent="." unique_id=566617549]
-position = Vector2(350, 490)
+position = Vector2(350, 459)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform1" unique_id=443410366]
@@ -781,7 +734,7 @@ region_enabled = true
 region_rect = Rect2(0, 0, 120, 32)
 
 [node name="Platform3" type="StaticBody2D" parent="." unique_id=1533181801]
-position = Vector2(1000, 360)
+position = Vector2(1029, 376)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform3" unique_id=1550802609]
@@ -794,7 +747,7 @@ region_enabled = true
 region_rect = Rect2(0, 0, 140, 32)
 
 [node name="Platform4" type="StaticBody2D" parent="." unique_id=1636949486]
-position = Vector2(1400, 300)
+position = Vector2(1394, 322)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform4" unique_id=1869813158]
@@ -833,7 +786,7 @@ region_enabled = true
 region_rect = Rect2(0, 0, 100, 32)
 
 [node name="Platform7" type="StaticBody2D" parent="." unique_id=107010203]
-position = Vector2(500, 350)
+position = Vector2(500, 339)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform7" unique_id=107010204]
@@ -845,8 +798,21 @@ texture = ExtResource("9")
 region_enabled = true
 region_rect = Rect2(0, 0, 120, 32)
 
+[node name="Platform12" type="StaticBody2D" parent="." unique_id=1488731178]
+position = Vector2(500, 339)
+collision_layer = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform12" unique_id=993160967]
+shape = SubResource("RectangleShape2D_plat")
+
+[node name="Sprite" type="Sprite2D" parent="Platform12" unique_id=783797558]
+texture_repeat = 2
+texture = ExtResource("9")
+region_enabled = true
+region_rect = Rect2(0, 0, 120, 32)
+
 [node name="Platform8" type="StaticBody2D" parent="." unique_id=107010206]
-position = Vector2(850, 280)
+position = Vector2(838, 347)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform8" unique_id=107010207]
@@ -859,7 +825,7 @@ region_enabled = true
 region_rect = Rect2(0, 0, 120, 32)
 
 [node name="Platform9" type="StaticBody2D" parent="." unique_id=107010209]
-position = Vector2(1200, 220)
+position = Vector2(1190, 265)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform9" unique_id=107010210]
@@ -897,57 +863,154 @@ texture = ExtResource("9")
 region_enabled = true
 region_rect = Rect2(0, 0, 120, 32)
 
-; ═══════════════════════════════════════════════════════════════
-; ███ PHẦN 9: SPAWN, ENEMIES, BOSS, AND OBJECTS ███
-; ═══════════════════════════════════════════════════════════════
-
 [node name="SpawnPoint" type="Marker2D" parent="." unique_id=644108766]
 position = Vector2(50, 531)
 
-[node name="Snake1" parent="." unique_id=1721858005 instance=ExtResource("6")]
-position = Vector2(396, 559)
-
 [node name="Snake2" parent="." unique_id=363848740 instance=ExtResource("6")]
-position = Vector2(1608, 572)
+position = Vector2(500, 565)
 
 [node name="Snake3" parent="." unique_id=107010301 instance=ExtResource("6")]
-position = Vector2(800, 565)
+position = Vector2(700, 565)
 
 [node name="Snake4" parent="." unique_id=107010302 instance=ExtResource("6")]
-position = Vector2(1200, 570)
+position = Vector2(950, 570)
 
 [node name="Snake5" parent="." unique_id=107010303 instance=ExtResource("6")]
+position = Vector2(1150, 572)
+
+[node name="Snake6" parent="." unique_id=207010601 instance=ExtResource("6")]
+position = Vector2(1350, 568)
+
+[node name="Snake7" parent="." unique_id=207010602 instance=ExtResource("6")]
+position = Vector2(1550, 572)
+
+[node name="Snake8" parent="." unique_id=207010603 instance=ExtResource("6")]
+position = Vector2(1700, 565)
+
+[node name="Snake9" parent="." unique_id=207010604 instance=ExtResource("6")]
+position = Vector2(1850, 570)
+
+[node name="Snake10" parent="." unique_id=207010605 instance=ExtResource("6")]
 position = Vector2(2000, 575)
 
+[node name="Snake12" parent="." unique_id=207010607 instance=ExtResource("6")]
+position = Vector2(2250, 568)
+
 [node name="Eagle1" parent="." unique_id=670907929 instance=ExtResource("7")]
-position = Vector2(667, 275)
+position = Vector2(300, 280)
 
 [node name="Eagle2" parent="." unique_id=1907671223 instance=ExtResource("7")]
-position = Vector2(1377, 262)
-
-[node name="Eagle3" parent="." unique_id=1885299896 instance=ExtResource("7")]
-position = Vector2(2138, 261)
-
-[node name="Eagle4" parent="." unique_id=107010401 instance=ExtResource("7")]
 position = Vector2(550, 200)
 
+[node name="Eagle3" parent="." unique_id=1885299896 instance=ExtResource("7")]
+position = Vector2(750, 250)
+
+[node name="Eagle4" parent="." unique_id=107010401 instance=ExtResource("7")]
+position = Vector2(950, 180)
+
 [node name="Eagle5" parent="." unique_id=107010402 instance=ExtResource("7")]
-position = Vector2(1250, 150)
+position = Vector2(1150, 220)
 
 [node name="Eagle6" parent="." unique_id=107010403 instance=ExtResource("7")]
-position = Vector2(1850, 180)
+position = Vector2(1350, 170)
+
+[node name="Eagle7" parent="." unique_id=207010701 instance=ExtResource("7")]
+position = Vector2(1500, 250)
+
+[node name="Eagle8" parent="." unique_id=207010702 instance=ExtResource("7")]
+position = Vector2(1700, 190)
+
+[node name="Eagle10" parent="." unique_id=207010704 instance=ExtResource("7")]
+position = Vector2(2000, 160)
+
+[node name="Eagle11" parent="." unique_id=207010705 instance=ExtResource("7")]
+position = Vector2(2150, 240)
+
+[node name="Eagle12" parent="." unique_id=207010706 instance=ExtResource("7")]
+position = Vector2(2300, 200)
 
 [node name="Spike1" parent="." unique_id=107010501 instance=ExtResource("14")]
-position = Vector2(450, 590)
+position = Vector2(300, 590)
+SpikeCount = 3
 
-[node name="Spike2" parent="." unique_id=107010502 instance=ExtResource("14")]
-position = Vector2(900, 590)
+[node name="Spike1" parent="Spike1" unique_id=6274919 instance=ExtResource("14")]
+position = Vector2(300, 590)
+SpikeCount = 3
+
+[node name="Spike2" parent="Spike1" unique_id=728963884 instance=ExtResource("14")]
+position = Vector2(351, -187)
+SpikeCount = 3
+
+[node name="Spike1" parent="Spike1/Spike2" unique_id=718417142 instance=ExtResource("14")]
+position = Vector2(300, 590)
+SpikeCount = 3
+
+[node name="Spike2" parent="Spike1/Spike2" unique_id=1288710896 instance=ExtResource("14")]
+position = Vector2(193, -74)
+SpikeCount = 3
+
+[node name="Spike1" parent="Spike1/Spike2/Spike2" unique_id=1572776908 instance=ExtResource("14")]
+position = Vector2(300, 590)
+SpikeCount = 3
+
+[node name="Spike2" parent="Spike1/Spike2/Spike2" unique_id=1363166475 instance=ExtResource("14")]
+position = Vector2(546, -20)
+SpikeCount = 3
+
+[node name="Spike1" parent="Spike1/Spike2/Spike2/Spike2" unique_id=1660305083 instance=ExtResource("14")]
+position = Vector2(300, 590)
+SpikeCount = 3
+
+[node name="Spike2" parent="Spike1/Spike2/Spike2/Spike2" unique_id=683534487 instance=ExtResource("14")]
+position = Vector2(367, 52)
+SpikeCount = 3
+
+[node name="Spike1" parent="Spike1/Spike2/Spike2/Spike2/Spike2" unique_id=1047884702 instance=ExtResource("14")]
+position = Vector2(300, 590)
+SpikeCount = 3
 
 [node name="Spike3" parent="." unique_id=107010503 instance=ExtResource("14")]
-position = Vector2(1300, 590)
+position = Vector2(680, 590)
+StartDelay = 0.8
 
-[node name="Spike4" parent="." unique_id=107010504 instance=ExtResource("14")]
+[node name="Spike5" parent="." unique_id=207010801 instance=ExtResource("14")]
+position = Vector2(1050, 590)
+UpDuration = 1.5
+DownDuration = 1.0
+
+[node name="Spike7" parent="." unique_id=207010803 instance=ExtResource("14")]
+position = Vector2(1400, 590)
+UpDuration = 1.5
+DownDuration = 0.8
+StartDelay = 1.0
+
+[node name="Spike9" parent="." unique_id=207010805 instance=ExtResource("14")]
+position = Vector2(1700, 590)
+UpDuration = 1.6
+DownDuration = 1.0
+StartDelay = 0.7
+
+[node name="Spike12" parent="." unique_id=207010808 instance=ExtResource("14")]
+position = Vector2(2100, 590)
+StartDelay = 0.5
+SpikeCount = 3
+
+[node name="Spike13" parent="." unique_id=207010809 instance=ExtResource("14")]
 position = Vector2(2200, 590)
+UpDuration = 1.8
+DownDuration = 1.0
+StartDelay = 0.9
+
+[node name="RockSpawner1" type="Node2D" parent="." unique_id=207010901]
+position = Vector2(900, 100)
+script = ExtResource("15")
+RockScene = ExtResource("16")
+SpawnInterval = 3.5
+
+[node name="RockSpawner2" type="Node2D" parent="." unique_id=207010902]
+position = Vector2(1800, 80)
+script = ExtResource("15")
+RockScene = ExtResource("16")
 
 [node name="ChanTinh" parent="." unique_id=987654321 instance=ExtResource("13")]
 position = Vector2(2538, 520)
