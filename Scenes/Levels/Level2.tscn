@@ -143,7 +143,7 @@ region_enabled = true
 region_rect = Rect2(0, 0, 160, 32)
 
 [node name="Snake1" parent="." unique_id=1290029545 instance=ExtResource("6")]
-position = Vector2(400, 590)
+position = Vector2(862, 585)
 
 [node name="Snake2" parent="." unique_id=798871362 instance=ExtResource("6")]
 position = Vector2(600, 590)

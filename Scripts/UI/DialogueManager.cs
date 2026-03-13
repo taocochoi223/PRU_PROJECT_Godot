@@ -42,12 +42,19 @@ public partial class DialogueManager : CanvasLayer
     }
 
     // Hàm gọi để phát 1 mảng các câu thoại
-    public async Task PlayDialogue(List<DialogueLine> lines)
+    public async Task PlayDialogue(List<DialogueLine> lines, bool pauseGame = true)
     {
+        bool pausedByDialogue = false;
+
         // Dừng thời gian game khi đang hội thoại
-        if (GameManager.Instance != null && GameManager.Instance.GetTree() != null)
+        if (pauseGame && GameManager.Instance != null && GameManager.Instance.GetTree() != null)
         {
-            GameManager.Instance.GetTree().Paused = true;
+            var tree = GameManager.Instance.GetTree();
+            if (!tree.Paused)
+            {
+                tree.Paused = true;
+                pausedByDialogue = true;
+            }
         }
 
         Visible = true;
@@ -88,8 +95,8 @@ public partial class DialogueManager : CanvasLayer
 
         Visible = false;
 
-        // Tiếp tục trò chơi
-        if (GameManager.Instance != null && GameManager.Instance.GetTree() != null)
+        // Tiếp tục trò chơi nếu chính hội thoại này đã pause trước đó
+        if (pausedByDialogue && GameManager.Instance != null && GameManager.Instance.GetTree() != null)
         {
             GameManager.Instance.GetTree().Paused = false;
         }

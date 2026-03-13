@@ -708,7 +708,7 @@ region_enabled = true
 region_rect = Rect2(85.14148, 351.68774, 1363.8488, 311.9115)
 
 [node name="Platform1" type="StaticBody2D" parent="." unique_id=566617549]
-position = Vector2(350, 459)
+position = Vector2(350, 479)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform1" unique_id=443410366]
@@ -721,7 +721,7 @@ region_enabled = true
 region_rect = Rect2(0, 0, 120, 32)
 
 [node name="Platform2" type="StaticBody2D" parent="." unique_id=1836763440]
-position = Vector2(650, 420)
+position = Vector2(678, 430)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform2" unique_id=1081177973]
@@ -729,6 +729,7 @@ shape = SubResource("RectangleShape2D_plat")
 
 [node name="Sprite" type="Sprite2D" parent="Platform2" unique_id=1183608098]
 texture_repeat = 2
+position = Vector2(-2, -7)
 texture = ExtResource("9")
 region_enabled = true
 region_rect = Rect2(0, 0, 120, 32)
@@ -786,26 +787,13 @@ region_enabled = true
 region_rect = Rect2(0, 0, 100, 32)
 
 [node name="Platform7" type="StaticBody2D" parent="." unique_id=107010203]
-position = Vector2(500, 339)
+position = Vector2(496, 389)
 collision_layer = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Platform7" unique_id=107010204]
 shape = SubResource("RectangleShape2D_plat")
 
 [node name="Sprite" type="Sprite2D" parent="Platform7" unique_id=107010205]
-texture_repeat = 2
-texture = ExtResource("9")
-region_enabled = true
-region_rect = Rect2(0, 0, 120, 32)
-
-[node name="Platform12" type="StaticBody2D" parent="." unique_id=1488731178]
-position = Vector2(500, 339)
-collision_layer = 2
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Platform12" unique_id=993160967]
-shape = SubResource("RectangleShape2D_plat")
-
-[node name="Sprite" type="Sprite2D" parent="Platform12" unique_id=783797558]
 texture_repeat = 2
 texture = ExtResource("9")
 region_enabled = true
@@ -896,9 +884,6 @@ position = Vector2(2000, 575)
 [node name="Snake12" parent="." unique_id=207010607 instance=ExtResource("6")]
 position = Vector2(2250, 568)
 
-[node name="Eagle1" parent="." unique_id=670907929 instance=ExtResource("7")]
-position = Vector2(300, 280)
-
 [node name="Eagle2" parent="." unique_id=1907671223 instance=ExtResource("7")]
 position = Vector2(550, 200)
 
@@ -985,7 +970,7 @@ DownDuration = 0.8
 StartDelay = 1.0
 
 [node name="Spike9" parent="." unique_id=207010805 instance=ExtResource("14")]
-position = Vector2(1700, 590)
+position = Vector2(1698, 590)
 UpDuration = 1.6
 DownDuration = 1.0
 StartDelay = 0.7
