@@ -185,7 +185,8 @@ public partial class LevelManager : Node2D
 
         if (lines.Count > 0)
         {
-            await dm.PlayDialogue(lines);
+            // Hội thoại đầu màn không pause gameplay theo yêu cầu.
+            await dm.PlayDialogue(lines, pauseGame: false);
         }
 
         if (LevelNumber == 1 && GameManager.Instance != null && !GameManager.Instance.HasCompletedOnboardingTutorial)
