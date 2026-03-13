@@ -72,7 +72,7 @@ public partial class WinScreen : Control
 
     private async void StartCutscene()
     {
-        string[] imagesFiles = {"Escape_cave_endgame", "explain_King", "wedding"}; 
+        string[] imagesFiles = { "Escape_cave_endgame", "explain_King", "wedding" };
         string[] lines = {
             "Chằn Tinh gục xuống, sào huyệt bắt đầu rung chuyển dữ dội như muốn chôn vùi mọi dấu tích của quỷ dữ. Không một chút chần chừ, Thạch Sanh bế công chúa Quỳnh Nga, băng qua những tảng đá rơi và làn khói bụi mờ mịt. Ánh sáng phía cuối hang động không chỉ là lối thoát, mà là khởi đầu cho một trang sử mới của một người anh hùng đích thực.",
             "Vượt qua bao dặm đường rừng, Thạch Sanh dắt tay Công chúa trở về giữa sự ngỡ ngàng của kinh thành. Trước điện bệ uy nghiêm, chàng quỳ xuống bẩm báo rõ ngọn ngành về hang yêu, về cuộc chiến sinh tử để cứu nguy cho người con gái của Đức vua. Sự chân thành trong từng lời nói và ánh mắt chính trực của người tráng sĩ ấy đã khiến trái tim nhà vua xúc động, nhận ra đâu mới là bậc anh hùng đích thực.",
@@ -81,20 +81,18 @@ public partial class WinScreen : Control
 
         for (int i = 0; i < 3; i++)
         {
-            Texture2D tex = GD.Load<Texture2D>($"res://Assets/Visuals/Cutscenes/{imagesFiles[i]}.png");
-            if (tex == null) tex = GD.Load<Texture2D>($"res://Assets/Visuals/Cutscenes/{imagesFiles[i]}.jpg");
-            if (tex == null) tex = GD.Load<Texture2D>($"res://Assets/Visuals/Cutscenes/{imagesFiles[i]}.jpeg");
-            
+            Texture2D tex = TryLoadCutsceneTexture(imagesFiles[i]);
+
             if (tex != null)
             {
                 _bgImage.Texture = tex;
             }
-            
+
             _subtitleLabel.Text = lines[i];
             _subtitleLabel.VisibleRatio = 0;
 
             AudioStream audio = GD.Load<AudioStream>($"res://Assets/Audio/Voices/{imagesFiles[i]}.mp3");
-            
+
             // Fade In
             var twIn = CreateTween();
             twIn.TweenProperty(_fadeRect, "color:a", 0.0f, 1.0f);
@@ -142,12 +140,12 @@ public partial class WinScreen : Control
 
         _bgImage.Visible = false;
         _mainContainer.Visible = true;
-        
+
         var twShowUI = CreateTween();
         twShowUI.TweenProperty(_fadeRect, "color:a", 0.0f, 1.0f);
         await ToSignal(twShowUI, "finished");
         _fadeRect.Visible = false;
-        
+
         // Hiệu ứng Title bay lên nhẹ nhàng The Win Screen Title Default Animation
         var title = GetNode<Label>("MainContainer/Title");
         title.Modulate = new Color(1, 1, 1, 0);
@@ -161,5 +159,20 @@ public partial class WinScreen : Control
     private void OnMenuPressed()
     {
         GameManager.Instance.GoToMainMenu();
+    }
+
+    private Texture2D TryLoadCutsceneTexture(string fileBaseName)
+    {
+        string[] extensions = { ".jpeg", ".jpg", ".png" };
+        foreach (string ext in extensions)
+        {
+            string path = $"res://Assets/Visuals/Cutscenes/{fileBaseName}{ext}";
+            if (ResourceLoader.Exists(path))
+            {
+                return GD.Load<Texture2D>(path);
+            }
+        }
+
+        return null;
     }
 }

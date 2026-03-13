@@ -34,7 +34,7 @@ public partial class ChanTinh : BaseEnemy
     // Phải khớp CHÍNH XÁC với tên trong SpriteHelper.cs
     // 8 chiêu thức đa dạng: chém, đập, quay, lửa, nhảy, sét, ném, năng lượng
     private readonly string[] _attacks = {
-        "attack_melee", "attack_smash", "attack_spin", 
+        "attack_melee", "attack_smash", "attack_spin",
         "attack_fire", "attack_jump", "attack_lightning",
         "attack_throw", "attack_energy",
         "attack_chem", "attack_ngang", "attack_tren"
@@ -52,10 +52,10 @@ public partial class ChanTinh : BaseEnemy
         AttackCooldown = 1.0f;   // Giảm từ 1.2s xuống 1.0s (tấn công dồn dập hơn)
 
         // Health Bar offset cho nửa màn hình
-        HealthBarOffset = new Vector2(-40, -220); 
+        HealthBarOffset = new Vector2(-40, -220);
 
         base._Ready();
-        
+
         // PRELOAD để tránh giật lag (Fix lỗi đơ 3s)
         if (MinionSnakeScene == null) MinionSnakeScene = GD.Load<PackedScene>("res://Scenes/Enemies/Snake.tscn");
         if (MinionEagleScene == null) MinionEagleScene = GD.Load<PackedScene>("res://Scenes/Enemies/Eagle.tscn");
@@ -67,7 +67,7 @@ public partial class ChanTinh : BaseEnemy
         AnimSprite.Play("idle");
 
         // Scale 0.6: sprite 500px * 0.6 = 300px hiển thị ≈ nửa màn hình 648px
-        Scale = new Vector2(0.6f, 0.6f); 
+        Scale = new Vector2(0.6f, 0.6f);
         ZIndex = 4000;
 
         if (_healthBarNode != null)
@@ -91,13 +91,13 @@ public partial class ChanTinh : BaseEnemy
             return; // Không nhận sát thương khi đang gồng triệu hồi
         }
 
-        bool isHeavyAttack = _queuedAttack == "attack_fire" || _queuedAttack == "attack_energy" || 
+        bool isHeavyAttack = _queuedAttack == "attack_fire" || _queuedAttack == "attack_energy" ||
                              _queuedAttack == "attack_smash" || _queuedAttack == "attack_lightning" ||
                              _queuedAttack == "attack_tren" || _queuedAttack == "attack_chem";
-        
+
         // Super Armor: Boss không bị khựng nếu đang ra chiêu nặng hoặc máu còn > 50%
         bool hasSuperArmor = (_bossState == BossState.Attack && isHeavyAttack) || (Health > MaxHealth * 0.5f);
-        
+
         // Check for summoning thresholds BEFORE base.TakeDamage to prevent hit stun
         float healthPct = (float)Health / MaxHealth;
         bool triggeredSummon = false;
@@ -119,7 +119,7 @@ public partial class ChanTinh : BaseEnemy
         }
 
         bool wasBusy = (_bossState == BossState.Attack || _bossState == BossState.Telegraph);
-        
+
         base.TakeDamage(damage);
 
         if (hasSuperArmor)
@@ -127,12 +127,12 @@ public partial class ChanTinh : BaseEnemy
             GD.Print("[ChanTinh] Super Armor active! Boss ignored hit stun.");
             return;
         }
-        
+
         // FIX LỖI ĐƠ: Reset lại máy trạng thái nếu bị trúng đòn
         if (Health > 0)
         {
             GD.Print("[ChanTinh] Hit stun! Interrupting actions.");
-            
+
             if (wasBusy && GD.Randf() > 0.4f)
             {
                 _bossState = BossState.Telegraph;
@@ -141,12 +141,13 @@ public partial class ChanTinh : BaseEnemy
             else
             {
                 _bossState = BossState.Cooldown;
-                _stateTimer = 0.5f; 
+                _stateTimer = 0.5f;
             }
-            
+
             // Một chút delay để đảm bảo thoát khỏi trạng thái Hurt của BaseEnemy rồi mới Play lại Idle
             var timer = GetTree().CreateTimer(0.4f);
-            timer.Timeout += () => {
+            timer.Timeout += () =>
+            {
                 if (!IsDead && !IsHurt) AnimSprite.Play("idle");
             };
         }
@@ -161,7 +162,7 @@ public partial class ChanTinh : BaseEnemy
         }
 
         float dt = (float)delta;
-        
+
         // LUÔN LUÔN giảm timer để các bẫy Safety Timeout hoạt động được
         _stateTimer -= dt;
 
@@ -249,11 +250,11 @@ public partial class ChanTinh : BaseEnemy
     {
         _bossState = BossState.Telegraph;
         _stateTimer = (float)GD.RandRange(0.3, 0.5); // Giảm chuẩn bị rườm rà
-        
+
         // Random chuẩn bị (đã thêm vào SpriteHelper.cs)
         string prepAnim = GD.Randf() > 0.5 ? "attack_prepare_2" : "attack_ready";
         AnimSprite.Play(prepAnim);
-        
+
         if (IsInstanceValid(TargetPlayer))
             SetFacingDirection(TargetPlayer.GlobalPosition.X < GlobalPosition.X);
 
@@ -278,19 +279,21 @@ public partial class ChanTinh : BaseEnemy
         if (GD.Randf() < 0.7f)
         {
             string[] newAttacks = { "attack_chem", "attack_ngang", "attack_tren" };
-            _queuedAttack = newAttacks[(int)GD.Randi() % newAttacks.Length];
+            int idx = (int)(GD.Randi() % (uint)newAttacks.Length);
+            _queuedAttack = newAttacks[idx];
         }
         else
         {
-            _queuedAttack = _attacks[(int)GD.Randi() % _attacks.Length];
+            int idx = (int)(GD.Randi() % (uint)_attacks.Length);
+            _queuedAttack = _attacks[idx];
         }
-        
+
         AnimSprite.Play(_queuedAttack);
         GD.Print($"[ChanTinh] Executing Attack: {_queuedAttack}");
 
         // VFX và Rung màn hình khi xuất chiêu nặng
         CreateAttackVFX();
-        bool isHeavyAttackMove = _queuedAttack == "attack_smash" || _queuedAttack == "attack_lightning" 
+        bool isHeavyAttackMove = _queuedAttack == "attack_smash" || _queuedAttack == "attack_lightning"
             || _queuedAttack == "attack_fire" || _queuedAttack == "attack_energy"
             || _queuedAttack == "attack_tren" || _queuedAttack == "attack_chem";
 
@@ -303,7 +306,7 @@ public partial class ChanTinh : BaseEnemy
     private void ProcessAttackState()
     {
         Velocity = new Vector2(0, Velocity.Y);
-        
+
         // Safety timeout
         if (_stateTimer < -4.0f)
         {
@@ -352,14 +355,14 @@ public partial class ChanTinh : BaseEnemy
     private void StartSummoning()
     {
         _bossState = BossState.Summoning;
-        _stateTimer = 1.5f; 
-        
+        _stateTimer = 1.5f;
+
         float healthPct = (float)Health / MaxHealth;
         if (healthPct <= 0.35f) _summoned30 = true;
         else _summoned70 = true;
 
         Velocity = Vector2.Zero;
-        
+
         if (AnimSprite.SpriteFrames.HasAnimation("summon")) AnimSprite.Play("summon");
         else AnimSprite.Play("idle");
 
@@ -368,47 +371,47 @@ public partial class ChanTinh : BaseEnemy
         // 1. Hiệu ứng Boss ám tím/đen (Nhưng vẫn phải nhìn rõ được Boss)
         var bossTween = CreateTween();
         // Giữ cường độ sáng ở mức 0.6-0.8 để Boss không bị đen xì
-        bossTween.TweenProperty(this, "modulate", new Color(0.7f, 0.5f, 0.9f, 1.0f), 0.4f); 
+        bossTween.TweenProperty(this, "modulate", new Color(0.7f, 0.5f, 0.9f, 1.0f), 0.4f);
 
         // 2. Tạo hiệu ứng Aura Đen (Cải thiện hiệu năng & loại bỏ ô vuông mờ)
         if (_summonParticles == null)
         {
             _summonParticles = new CpuParticles2D();
-            _summonParticles.Amount = 30; 
+            _summonParticles.Amount = 30;
             _summonParticles.Lifetime = 1.0f;
             _summonParticles.Explosiveness = 0f;
             _summonParticles.Spread = 40f;
-            _summonParticles.Gravity = new Vector2(0, -80); 
+            _summonParticles.Gravity = new Vector2(0, -80);
             _summonParticles.Direction = new Vector2(0, -1);
             _summonParticles.InitialVelocityMin = 40f;
             _summonParticles.InitialVelocityMax = 90f;
-            _summonParticles.ScaleAmountMin = 0.5f; 
+            _summonParticles.ScaleAmountMin = 0.5f;
             _summonParticles.ScaleAmountMax = 1.5f;
-            
+
             // Dùng texture hình tròn mờ để xóa sổ "ô vuông mờ"
-            _summonParticles.Texture = CreateDotTexture(); 
-            
+            _summonParticles.Texture = CreateDotTexture();
+
             var ramp = new Gradient();
-            ramp.AddPoint(0f, new Color(0.1f, 0f, 0.2f, 0f)); 
-            ramp.AddPoint(0.3f, new Color(0.15f, 0.05f, 0.35f, 0.4f)); 
-            ramp.AddPoint(0.7f, new Color(0.1f, 0f, 0.2f, 0.2f)); 
-            ramp.AddPoint(1.0f, new Color(0, 0, 0, 0)); 
+            ramp.AddPoint(0f, new Color(0.1f, 0f, 0.2f, 0f));
+            ramp.AddPoint(0.3f, new Color(0.15f, 0.05f, 0.35f, 0.4f));
+            ramp.AddPoint(0.7f, new Color(0.1f, 0f, 0.2f, 0.2f));
+            ramp.AddPoint(1.0f, new Color(0, 0, 0, 0));
             _summonParticles.ColorRamp = ramp;
-            
+
             AddChild(_summonParticles);
-            _summonParticles.Position = new Vector2(0, 50); 
+            _summonParticles.Position = new Vector2(0, 50);
         }
-        
+
         _summonParticles.Emitting = true;
-        
-        TriggerCameraShake(1.5f, 20f); 
+
+        TriggerCameraShake(1.5f, 20f);
         GD.Print("[ChanTinh] START SUMMONING! Black Aura Charging...");
     }
 
     private void ProcessSummoningState(float dt)
     {
         Velocity = new Vector2(0, Velocity.Y);
-        
+
         // Nhấp nháy tà khí tím (Tăng độ sáng để nhìn rõ Boss)
         float pulse = (float)Math.Sin(Time.GetTicksMsec() * 0.03f) * 0.2f + 0.8f;
         Modulate = new Color(pulse * 0.8f, pulse * 0.6f, pulse * 1.1f, 1.0f);
@@ -416,9 +419,9 @@ public partial class ChanTinh : BaseEnemy
         if (_stateTimer <= 0)
         {
             PerformSummon();
-            
+
             if (_summonParticles != null) _summonParticles.Emitting = false;
-            
+
             var restoreTween = CreateTween();
             restoreTween.TweenProperty(this, "modulate", _originalModulate, 0.3f);
 
@@ -430,7 +433,7 @@ public partial class ChanTinh : BaseEnemy
     private void PerformSummon()
     {
         GD.Print("[ChanTinh] PERFORM SUMMON! Minions appearing.");
-        
+
         // Xác định số lượng dựa trên mốc máu
         float healthPct = (float)Health / MaxHealth;
         int snakeCount = (healthPct <= 0.4f) ? 3 : 2;
@@ -464,7 +467,7 @@ public partial class ChanTinh : BaseEnemy
                 CreateSpawnVFX(eagle.GlobalPosition);
             }
         }
-        
+
         TriggerCameraShake(0.5f, 30f);
     }
 
@@ -483,7 +486,7 @@ public partial class ChanTinh : BaseEnemy
         explosion.InitialVelocityMax = 200f;
         explosion.ScaleAmountMin = 5f;
         explosion.ScaleAmountMax = 10f;
-        
+
         var colorRamp = new Gradient();
         colorRamp.AddPoint(0.0f, Colors.Cyan);
         colorRamp.AddPoint(1.0f, new Color(0, 0, 1, 0));
@@ -566,10 +569,10 @@ public partial class ChanTinh : BaseEnemy
         if (IsDead) return;
         IsDead = true;
         _bossState = BossState.Dead;
-        
+
         // RESET màu sắc về mặc định để nhìn rõ animation chết (Fix lỗi bị mờ/đen)
         Modulate = Colors.White;
-        
+
         GD.Print("[ChanTinh] DIED! Starting epic death sequence...");
 
         // --- SỬA LỖI: Tắt ngay lập tức các vùng va chạm để không gây sát thương khi đã chết ---
@@ -579,16 +582,16 @@ public partial class ChanTinh : BaseEnemy
             GetNode<CollisionShape2D>("HitArea/CollisionShape2D").SetDeferred("disabled", true);
         if (HasNode("DetectArea/CollisionShape2D"))
             GetNode<CollisionShape2D>("DetectArea/CollisionShape2D").SetDeferred("disabled", true);
-        
+
         // 1. HITSTOP & SLOW MOTION (Cinematic feel)
         Engine.TimeScale = 0.15f; // Dừng hình nhẹ 0.15s
         TriggerCameraShake(0.6f, 25f); // Giảm rung xuống (từ 1.5s/60f) để nhìn rõ quá trình chết
-        
+
         await Task.Delay(150); // Delay thực tế để người chơi cảm nhận cú chót
         Engine.TimeScale = 0.4f; // Chuyển sang Slow-motion mượt mà (40% tốc độ)
-        
+
         // Cảnh báo: Phải dùng Task.Delay tính theo thời gian thực (vì TimeScale đang thấp)
-        
+
         // 2. Chuỗi hiệu ứng nổ liên hoàn
         for (int i = 0; i < 6; i++)
         {
@@ -599,15 +602,15 @@ public partial class ChanTinh : BaseEnemy
         }
 
         // 3. Play animation chết chậm (Để nhìn rõ ảnh người dùng tự cắt)
-        AnimSprite.SpeedScale = 0.6f; 
+        AnimSprite.SpeedScale = 0.6f;
         AnimSprite.Play("die");
-        
+
         // ĐỢI ĐẾN FRAME CUỐI (B_chet6 tương đương frame 6)
         while (IsInstanceValid(this) && AnimSprite.Animation == "die" && AnimSprite.Frame < 6)
         {
             await Task.Delay(100);
         }
-        
+
         // DỪNG Ở FRAME CUỐI để người chơi nhìn rõ cảnh Boss gục
         if (IsInstanceValid(this) && AnimSprite.Animation == "die")
         {
@@ -620,15 +623,15 @@ public partial class ChanTinh : BaseEnemy
         SpawnChest();
 
         // 5. Đợi một chút trước khi biến mất (Giảm xuống 1s như yêu cầu)
-        await Task.Delay(1000); 
-        
-        if (IsInstanceValid(this)) 
+        await Task.Delay(1000);
+
+        if (IsInstanceValid(this))
         {
             // Hiệu ứng mờ dần (Fade out)
             var fadeTw = CreateTween();
             fadeTw.TweenProperty(this, "modulate:a", 0f, 0.8f);
             await ToSignal(fadeTw, "finished");
-            
+
             // Reset lại tốc độ game TRƯỚC khi xóa boss
             Engine.TimeScale = 1.0f;
             QueueFree();
@@ -643,16 +646,16 @@ public partial class ChanTinh : BaseEnemy
             var chest = ChestScene.Instantiate<TreasureChest>();
             // Thiết lập rương cho Boss: Không cần diệt quái nữa (đã giết Boss rồi)
             chest.RequireAllEnemiesDefeated = false;
-            
+
             GetParent().AddChild(chest);
             chest.GlobalPosition = GlobalPosition + new Vector2(0, -50);
-            
+
             // Hiệu ứng cái rương bay ra từ người boss và rơi SÁT MẶT ĐẤT (Y=615)
             var tween = chest.CreateTween();
             Vector2 targetPos = new Vector2(chest.GlobalPosition.X + (GD.Randf() > 0.5f ? 120 : -120), 615);
             tween.TweenProperty(chest, "global_position:y", chest.GlobalPosition.Y - 100, 0.5f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
             tween.Chain().TweenProperty(chest, "global_position", targetPos, 0.5f).SetTrans(Tween.TransitionType.Bounce).SetEase(Tween.EaseType.Out);
-            
+
             GD.Print("[ChanTinh] Treasure Chest spawned!");
         }
     }
@@ -661,7 +664,7 @@ public partial class ChanTinh : BaseEnemy
     {
         // 1. Vị trí ngẫu nhiên quanh Boss
         var pos = GlobalPosition + new Vector2((float)GD.RandRange(-150, 150), (float)GD.RandRange(-300, 50));
-        
+
         // 2. Sử dụng CPUParticles2D thay vì Sprite2D để tránh lỗi thiếu file (explosion.png)
         // và tạo hiệu ứng nổ lung linh, hoành tráng hơn cho Boss cuối.
         var explosion = new CpuParticles2D();
@@ -671,33 +674,33 @@ public partial class ChanTinh : BaseEnemy
         explosion.Amount = 35;
         explosion.Lifetime = 0.5f;
         explosion.Explosiveness = 0.95f;
-        
+
         // Cấu hình hướng nổ tỏa tròn
         explosion.Spread = 180f;
-        explosion.Gravity = Vector2.Zero; 
+        explosion.Gravity = Vector2.Zero;
         explosion.InitialVelocityMin = 150f;
         explosion.InitialVelocityMax = 350f;
         explosion.DampingMin = 100f;
         explosion.DampingMax = 200f;
-        
+
         // Kích thước hạt (Hạt nổ to dần rồi biến mất)
         explosion.ScaleAmountMin = 8f;
         explosion.ScaleAmountMax = 18f;
-        
+
         // Gradient màu nổ: Trắng -> Vàng sáng -> Cam rực -> Đỏ -> Xám đen (khói)
         var colorRamp = new Gradient();
         colorRamp.AddPoint(0.0f, Colors.White);
         colorRamp.AddPoint(0.2f, Colors.Yellow);
         colorRamp.AddPoint(0.4f, Colors.OrangeRed);
         colorRamp.AddPoint(0.7f, Colors.Red);
-        colorRamp.AddPoint(1.0f, new Color(0.1f, 0.1f, 0.1f, 0f)); 
+        colorRamp.AddPoint(1.0f, new Color(0.1f, 0.1f, 0.1f, 0f));
         explosion.ColorRamp = colorRamp;
 
         // Thêm vào scene (gắn vào parent để không bị di chuyển theo boss nếu boss đang chết)
         if (GetParent() != null)
         {
             GetParent().AddChild(explosion);
-            
+
             // Tự hủy sau khi hoàn thành lifetime + buffer
             var timer = GetTree().CreateTimer(explosion.Lifetime + 0.2f);
             timer.Timeout += () => { if (IsInstanceValid(explosion)) explosion.QueueFree(); };
@@ -729,8 +732,8 @@ public partial class ChanTinh : BaseEnemy
         {
             for (int y = 0; y < size; y++)
             {
-                float dx = x - (size/2f - 0.5f);
-                float dy = y - (size/2f - 0.5f);
+                float dx = x - (size / 2f - 0.5f);
+                float dy = y - (size / 2f - 0.5f);
                 float dist = (float)Math.Sqrt(dx * dx + dy * dy);
                 float radius = size / 2.2f;
                 if (dist < radius)

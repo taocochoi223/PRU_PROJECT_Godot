@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public partial class Princess : Area2D
 {
     [Export] public bool RequireAllEnemiesDefeated = true;
+    [Export] public float EnemyCheckRadius = 1400.0f;
 
     private AnimatedSprite2D _animSprite;
     private Label _messageLabel;
@@ -61,7 +62,11 @@ public partial class Princess : Area2D
             int aliveCount = 0;
             foreach (var node in nodes)
             {
-                if (node is BaseEnemy enemy && !enemy.IsDead)
+                if (node is BaseEnemy enemy
+                    && !enemy.IsDead
+                    && enemy.IsVisibleInTree()
+                    && enemy.ProcessMode != ProcessModeEnum.Disabled
+                    && enemy.GlobalPosition.DistanceTo(GlobalPosition) <= EnemyCheckRadius)
                 {
                     aliveCount++;
                 }
