@@ -9,7 +9,7 @@ public partial class LevelManager : Node2D
 
     private Node2D _spawnPoint;
     private HUD _hud;
-    private Player _player;
+    private Node2D _player;
     private TutorialManager _tutorialManager;
 
     // --- Level 3 specific references ---
@@ -22,6 +22,7 @@ public partial class LevelManager : Node2D
     private bool _level3BossCleanupDone = false;
     private Vector2 _bossArenaEntrance = new Vector2(2350, 580);
     private StaticBody2D _princessBarrier;
+    private TreasureChest _level1RewardChest;
 
     // --- Level 3 atmosphere effects ---
     private List<ColorRect> _fireflies = new List<ColorRect>();
@@ -40,8 +41,8 @@ public partial class LevelManager : Node2D
         // Giữ phần reset skill của bạn
         if (LevelNumber == 1)
         {
-            GameManager.Instance.UnlockedSkillsCount = 0;
-            GD.Print("Level 1: Reset UnlockedSkillsCount to 0");
+            GameManager.Instance.UnlockedSkillsCount = 1;
+            GD.Print("Level 1: Unlock Skill 1 by default");
         }
         else if (LevelNumber == 3 || LevelNumber == 4)
         {
@@ -54,6 +55,8 @@ public partial class LevelManager : Node2D
 
         CollectCheckpoints();
         SpawnPlayer();
+        if (LevelNumber == 1)
+            SpawnLevel1RewardChest();
         ConnectPlayerSignals();
         CallDeferred(nameof(PlayLevelStartSequence));
 
@@ -63,14 +66,17 @@ public partial class LevelManager : Node2D
             SetupLevel3Atmosphere();
         }
 
-        // Giữ phần bẫy đá từ GitHub
+        // Tạm thời tắt bẫy đá cũ của side-scroller cho phong cách Isometric mới
+        /*
         if (LevelNumber == 1)
         {
             SpawnLevel1CustomTraps();
         }
+        */
 
         // Tự động biến các cục đá trang trí ở giữa đường thành chướng ngại vật (vật cản)
-        MakeRocksSolidObstacles();
+        if (LevelNumber != 1) // Bỏ qua ở Level 1 Isometric vì chúng ta dùng hệ thống tường riêng
+            MakeRocksSolidObstacles();
     }
 
     private void MakeRocksSolidObstacles()
@@ -143,7 +149,7 @@ public partial class LevelManager : Node2D
 
         if (PlayerScene != null)
         {
-            _player = PlayerScene.Instantiate<Player>();
+            _player = PlayerScene.Instantiate<Node2D>();
             _player.GlobalPosition = spawnPos;
             _player.AddToGroup("player");
             AddChild(_player);
@@ -155,9 +161,29 @@ public partial class LevelManager : Node2D
         }
     }
 
+    private void SpawnLevel1RewardChest()
+    {
+        var chestScene = GD.Load<PackedScene>("res://Scenes/NPCs/TreasureChest.tscn");
+        if (chestScene == null)
+        {
+            GD.PrintErr("LevelManager: Cannot load TreasureChest.tscn for Level 1 reward.");
+            return;
+        }
+
+        _level1RewardChest = chestScene.Instantiate<TreasureChest>();
+        _level1RewardChest.RequireAllEnemiesDefeated = true;
+        _level1RewardChest.GlobalPosition = new Vector2(4500, 560);
+        AddChild(_level1RewardChest);
+    }
+
     private void ConnectPlayerSignals()
     {
-        if (_player != null) _player.PlayerDied += OnPlayerDied;
+        if (_player != null)
+        {
+            // Connect to death signal if it exists on either Player or IsometricPlayer
+            if (_player.HasSignal("PlayerDied"))
+                _player.Connect("PlayerDied", Callable.From(OnPlayerDied));
+        }
     }
 
     private async void PlayLevelStartSequence()
@@ -185,15 +211,18 @@ public partial class LevelManager : Node2D
 
         if (lines.Count > 0)
         {
-            // Hội thoại đầu màn không pause gameplay theo yêu cầu.
             await dm.PlayDialogue(lines, pauseGame: false);
         }
 
         if (LevelNumber == 1 && GameManager.Instance != null && !GameManager.Instance.HasCompletedOnboardingTutorial)
         {
-            _tutorialManager = new TutorialManager();
-            AddChild(_tutorialManager);
-            await _tutorialManager.RunTutorial(_player);
+            // Only run tutorial for original Player type
+            if (_player.GetType().Name == "Player")
+            {
+                _tutorialManager = new TutorialManager();
+                AddChild(_tutorialManager);
+                await _tutorialManager.RunTutorial((Player)_player);
+            }
         }
     }
 

@@ -29,7 +29,7 @@ public partial class TreasureChest : Area2D
     private Label _popupSkillHotkey;
     private Label _popupSkillBody;
     private Label _popupSkillCooldown;
-    private Player _currentPlayer;
+    private Node2D _currentPlayer;
     private Tween _typewriterTween;
     private Tween _skillCardPulseTween;
     private Tween _portalPulseTween;
@@ -131,10 +131,10 @@ public partial class TreasureChest : Area2D
         if (_isOpened) return;
 
         // Tìm xem Player có đang chạm vào rương không
-        Player p = null;
+        Node2D p = null;
         foreach (var body in GetOverlappingBodies())
         {
-            if (body is Player target)
+            if (body is Node2D target && target.IsInGroup("player"))
             {
                 p = target;
                 break;
@@ -211,14 +211,14 @@ public partial class TreasureChest : Area2D
     {
         // Logic bây giờ chủ yếu xử lý ở _Process để mượt mà hơn
         if (_isOpened) return;
-        if (body is Player player)
+        if (body is Node2D player && player.IsInGroup("player"))
         {
             // Trigger check ngay lập tức khi vừa chạm
             _Process(0);
         }
     }
 
-    private void OpenChest(Player player)
+    private void OpenChest(Node2D player)
     {
         if (_isOpened) return;
         _isOpened = true;
@@ -355,7 +355,7 @@ public partial class TreasureChest : Area2D
                     // Màn 3: Nhận chìa khóa Boss để mở lồng Công Chúa
                     GameManager.Instance.HasBossKey = true;
                     GameManager.Instance.TotalKeys++;
-                    
+
                     // Hiện hội thoại nhận chìa khóa cuối cùng
                     PlayDialogueAndShowPopups(player, 3);
                     GD.Print("Màn 3: Đã nhận Chìa khóa Chằn Tinh từ Rương Báu!");
@@ -370,7 +370,7 @@ public partial class TreasureChest : Area2D
         }));
     }
 
-    private async void PlayDialogueAndShowPopups(Player player, int level)
+    private async void PlayDialogueAndShowPopups(Node2D player, int level)
     {
         var dm = new DialogueManager();
         AddChild(dm);
@@ -401,7 +401,7 @@ public partial class TreasureChest : Area2D
         {
             await dm.PlayDialogue(lines);
         }
-        
+
         if (level == 1 || level == 2 || level == 3)
         {
             ShowRewardPopups(player);
@@ -409,11 +409,11 @@ public partial class TreasureChest : Area2D
         else
         {
             // Trường hợp rương phụ (nếu có) có thể hiện Portal hoặc đơn giản là biến mất
-            Modulate = new Color(1, 1, 1, 0); 
+            Modulate = new Color(1, 1, 1, 0);
         }
     }
 
-    private void CreateEpicPortal(Player player)
+    private void CreateEpicPortal(Node2D player)
     {
         _portal = new Godot.Node2D();
         _portal.Position = new Godot.Vector2(250, -50); // Mở xa rương một chút (250px sang phải)
@@ -492,8 +492,9 @@ public partial class TreasureChest : Area2D
         {
             // Xác định hướng để nhân vật đi về phía cổng
             float moveDir = (_portal.GlobalPosition.X > player.GlobalPosition.X) ? 1.0f : -1.0f;
-            player.WalkIntoCave(moveDir); // Nhân vật bắt đầu đi bộ vào bóng tối
-            
+            if (player.HasMethod("WalkIntoCave"))
+                player.Call("WalkIntoCave", moveDir); // Nhân vật bắt đầu đi bộ vào bóng tối
+
             // Hiệu ứng mờ dần và thu nhỏ nhẹ để tạo cảm giác đi sâu vào bên trong
             var depthTween = CreateTween().SetParallel(true);
             depthTween.TweenProperty(player, "scale", new Godot.Vector2(0.4f, 0.4f), 1.5f).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
@@ -508,7 +509,7 @@ public partial class TreasureChest : Area2D
         }));
     }
 
-    private void ShowRewardPopups(Player player)
+    private void ShowRewardPopups(Node2D player)
     {
         // guard: if chest is already disposed or player invalid, skip popup
         if (!IsInstanceValid(this) || player == null || !IsInstanceValid(player)) return;

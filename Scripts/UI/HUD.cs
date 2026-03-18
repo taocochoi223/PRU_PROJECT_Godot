@@ -4,25 +4,26 @@ public partial class HUD : CanvasLayer
 {
     // ── HUD widgets ──────────────────────────────────────────────────────────
     private ProgressBar _healthBar;
-    private Label       _scoreLabel;
-    private Label       _levelLabel;
-    private Label       _livesLabel;
-    private Label       _keysLabel;
+    private Label _scoreLabel;
+    private Label _levelLabel;
+    private Label _livesLabel;
+    private Label _keysLabel;
 
     // ── Pause UI ─────────────────────────────────────────────────────────────
     // _overlayLayer dùng Layer=10, luôn đè lên skill icons (Layer=5)
     // → nút bánh răng và pause panel KHÔNG BAO GIỜ bị skill icons che khuất
     private CanvasLayer _overlayLayer;
-    private Button      _gearButton;
-    private Panel       _pausePanel;
-    private Button      _resumeButton;
-    private Button      _muteButton;
-    private Button      _exitButton;
-    private Label       _countdownLabel;
+    private Button _gearButton;
+    private Panel _pausePanel;
+    private Button _resumeButton;
+    private Button _muteButton;
+    private Button _exitButton;
+    private Label _countdownLabel;
 
     // ── State ────────────────────────────────────────────────────────────────
-    private Player _player;
-    private bool   _isMuted = false;
+    private Node _player;
+    private bool _healthSignalConnected = false;
+    private bool _isMuted = false;
 
     // ═════════════════════════════════════════════════════════════════════════
     public override void _Ready()
@@ -30,10 +31,10 @@ public partial class HUD : CanvasLayer
         ProcessMode = ProcessModeEnum.Always;
 
         // ── lấy node gốc có sẵn trong scene ──────────────────────────────
-        _healthBar  = GetNode<ProgressBar>("MarginContainer/HBoxContainer/HealthBar");
-        _scoreLabel = GetNode<Label>      ("MarginContainer/HBoxContainer/ScoreLabel");
-        _levelLabel = GetNode<Label>      ("MarginContainer/HBoxContainer/LevelLabel");
-        
+        _healthBar = GetNode<ProgressBar>("MarginContainer/HBoxContainer/HealthBar");
+        _scoreLabel = GetNode<Label>("MarginContainer/HBoxContainer/ScoreLabel");
+        _levelLabel = GetNode<Label>("MarginContainer/HBoxContainer/LevelLabel");
+
         if (HasNode("MarginContainer/HBoxContainer/HealthIcon"))
             GetNode<Control>("MarginContainer/HBoxContainer/HealthIcon").Visible = false;
 
@@ -82,10 +83,10 @@ public partial class HUD : CanvasLayer
         // ── Nhãn đếm ngược ────────────────────────────────────────────────
         _countdownLabel = new Label();
         _countdownLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        _countdownLabel.VerticalAlignment   = VerticalAlignment.Center;
+        _countdownLabel.VerticalAlignment = VerticalAlignment.Center;
         _countdownLabel.SetAnchorsPreset(Control.LayoutPreset.Center);
         _countdownLabel.GrowHorizontal = Control.GrowDirection.Both;
-        _countdownLabel.GrowVertical   = Control.GrowDirection.Both;
+        _countdownLabel.GrowVertical = Control.GrowDirection.Both;
         _countdownLabel.AddThemeFontSizeOverride("font_size", 120);
         _countdownLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
         _countdownLabel.AddThemeConstantOverride("outline_size", 15);
@@ -113,31 +114,31 @@ public partial class HUD : CanvasLayer
         var styleNormal = new StyleBoxFlat();
         styleNormal.BgColor = new Color(0.08f, 0.08f, 0.10f, 0.78f);
         styleNormal.SetCornerRadiusAll(27);
-        styleNormal.BorderWidthLeft  = styleNormal.BorderWidthRight  =
-        styleNormal.BorderWidthTop   = styleNormal.BorderWidthBottom = 2;
+        styleNormal.BorderWidthLeft = styleNormal.BorderWidthRight =
+        styleNormal.BorderWidthTop = styleNormal.BorderWidthBottom = 2;
         styleNormal.BorderColor = new Color(0.55f, 0.55f, 0.60f, 0.9f);
 
         var styleHover = new StyleBoxFlat();
         styleHover.BgColor = new Color(0.18f, 0.18f, 0.22f, 0.92f);
         styleHover.SetCornerRadiusAll(27);
-        styleHover.BorderWidthLeft  = styleHover.BorderWidthRight  =
-        styleHover.BorderWidthTop   = styleHover.BorderWidthBottom = 2;
+        styleHover.BorderWidthLeft = styleHover.BorderWidthRight =
+        styleHover.BorderWidthTop = styleHover.BorderWidthBottom = 2;
         styleHover.BorderColor = new Color(0.85f, 0.75f, 0.30f, 1f); // vàng khi hover
 
-        _gearButton.AddThemeStyleboxOverride("normal",  styleNormal);
-        _gearButton.AddThemeStyleboxOverride("hover",   styleHover);
+        _gearButton.AddThemeStyleboxOverride("normal", styleNormal);
+        _gearButton.AddThemeStyleboxOverride("hover", styleHover);
         _gearButton.AddThemeStyleboxOverride("pressed", styleHover);
-        _gearButton.AddThemeStyleboxOverride("focus",   new StyleBoxEmpty());
+        _gearButton.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
         _gearButton.AddThemeColorOverride("font_color", Colors.White);
 
         // Góc phải trên (Skill Icons đã được dịch sang trái để chừa chỗ này)
-        _gearButton.AnchorLeft   = 1f;
-        _gearButton.AnchorTop    = 0f;
-        _gearButton.AnchorRight  = 1f;
+        _gearButton.AnchorLeft = 1f;
+        _gearButton.AnchorTop = 0f;
+        _gearButton.AnchorRight = 1f;
         _gearButton.AnchorBottom = 0f;
-        _gearButton.OffsetLeft   = -80f;   // Nằm trong khoảng 100px trống bên phải
-        _gearButton.OffsetTop    = 15f;    // Căn chỉnh cho đẹp với Hub/Skill
-        _gearButton.OffsetRight  = -16f;
+        _gearButton.OffsetLeft = -80f;   // Nằm trong khoảng 100px trống bên phải
+        _gearButton.OffsetTop = 15f;    // Căn chỉnh cho đẹp với Hub/Skill
+        _gearButton.OffsetRight = -16f;
         _gearButton.OffsetBottom = 79f;
 
         _gearButton.Pressed += OnGearPressed;
@@ -170,17 +171,17 @@ public partial class HUD : CanvasLayer
         boxStyle.BgColor = new Color(0.07f, 0.08f, 0.11f, 0.97f);
         boxStyle.SetCornerRadiusAll(20);
         boxStyle.BorderWidthLeft = boxStyle.BorderWidthRight =
-        boxStyle.BorderWidthTop  = boxStyle.BorderWidthBottom = 3;
+        boxStyle.BorderWidthTop = boxStyle.BorderWidthBottom = 3;
         boxStyle.BorderColor = new Color(0.85f, 0.7f, 0.25f, 1f);
         boxStyle.ShadowColor = new Color(0, 0, 0, 0.5f);
-        boxStyle.ShadowSize  = 12;
+        boxStyle.ShadowSize = 12;
         box.AddThemeStyleboxOverride("panel", boxStyle);
         center.AddChild(box);
 
         var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left",   36);
-        margin.AddThemeConstantOverride("margin_right",  36);
-        margin.AddThemeConstantOverride("margin_top",    32);
+        margin.AddThemeConstantOverride("margin_left", 36);
+        margin.AddThemeConstantOverride("margin_right", 36);
+        margin.AddThemeConstantOverride("margin_top", 32);
         margin.AddThemeConstantOverride("margin_bottom", 32);
         box.AddChild(margin);
 
@@ -226,7 +227,7 @@ public partial class HUD : CanvasLayer
         // Đồng bộ với trạng thái thực tế của hệ thống
         int masterIndex = AudioServer.GetBusIndex("Master");
         _isMuted = AudioServer.IsBusMute(masterIndex);
-        
+
         _muteButton = MakePauseButton(
             _isMuted ? "🔇  ÂM THANH: TẮT" : "🔊  ÂM THANH: BẬT",
             _isMuted ? new Color(0.35f, 0.35f, 0.35f) : new Color(0.15f, 0.35f, 0.60f),
@@ -260,13 +261,13 @@ public partial class HUD : CanvasLayer
         sHover.BgColor = hoverColor;
         sHover.SetCornerRadiusAll(10);
         sHover.BorderWidthLeft = sHover.BorderWidthRight =
-        sHover.BorderWidthTop  = sHover.BorderWidthBottom = 2;
+        sHover.BorderWidthTop = sHover.BorderWidthBottom = 2;
         sHover.BorderColor = Colors.White with { A = 0.3f };
 
-        btn.AddThemeStyleboxOverride("normal",  sNormal);
-        btn.AddThemeStyleboxOverride("hover",   sHover);
+        btn.AddThemeStyleboxOverride("normal", sNormal);
+        btn.AddThemeStyleboxOverride("hover", sHover);
         btn.AddThemeStyleboxOverride("pressed", sHover);
-        btn.AddThemeStyleboxOverride("focus",   new StyleBoxEmpty());
+        btn.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
         return btn;
     }
 
@@ -314,11 +315,21 @@ public partial class HUD : CanvasLayer
     {
         if (!IsInstanceValid(_player))
         {
-            if (GetTree().GetFirstNodeInGroup("player") is Player p)
+            _healthSignalConnected = false;
+            if (GetTree().GetFirstNodeInGroup("player") is Node p)
             {
                 _player = p;
-                _player.HealthChanged += OnHealthChanged;
+                if (_player.HasSignal("HealthChanged"))
+                {
+                    _player.Connect("HealthChanged", Callable.From<int, int>(OnHealthChanged));
+                    _healthSignalConnected = true;
+                }
             }
+        }
+        else if (!_healthSignalConnected && _player.HasSignal("HealthChanged"))
+        {
+            _player.Connect("HealthChanged", Callable.From<int, int>(OnHealthChanged));
+            _healthSignalConnected = true;
         }
 
         UpdateUI();
@@ -343,11 +354,11 @@ public partial class HUD : CanvasLayer
         if (_healthBar != null)
         {
             _healthBar.MaxValue = GameManager.Instance.MaxPlayerHealth;
-            _healthBar.Value    = GameManager.Instance.PlayerHealth;
+            _healthBar.Value = GameManager.Instance.PlayerHealth;
             float pct = (float)GameManager.Instance.PlayerHealth / GameManager.Instance.MaxPlayerHealth;
             _healthBar.Modulate = pct > 0.66f ? Colors.Green
                                 : pct > 0.33f ? Colors.Yellow
-                                :               Colors.Red;
+                                : Colors.Red;
         }
 
         if (_scoreLabel != null)
@@ -373,7 +384,7 @@ public partial class HUD : CanvasLayer
 
         if (_keysLabel != null)
         {
-            _keysLabel.Text    = $"🗝️ Chìa khóa: {GameManager.Instance.TotalKeys} / 3";
+            _keysLabel.Text = $"🗝️ Chìa khóa: {GameManager.Instance.TotalKeys} / 3";
             _keysLabel.Visible = GameManager.Instance.TotalKeys > 0;
         }
     }
@@ -382,10 +393,10 @@ public partial class HUD : CanvasLayer
     {
         if (_healthBar == null) return;
         _healthBar.MaxValue = maxHealth;
-        _healthBar.Value    = newHealth;
+        _healthBar.Value = newHealth;
         float pct = (float)newHealth / maxHealth;
         _healthBar.Modulate = pct > 0.66f ? Colors.Green
                             : pct > 0.33f ? Colors.Yellow
-                            :               Colors.Red;
+                            : Colors.Red;
     }
 }

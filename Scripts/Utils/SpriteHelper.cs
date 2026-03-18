@@ -60,12 +60,12 @@ public static class SpriteHelper
 
         // Jump animation - load from nhảy1 (2).png to nhảy5.png
         var jumpTextures = new List<Texture2D>();
-        string[] jumpPaths = { 
-            "res://Assets/Sprites/Player/nhảy1 (2).png", 
-            "res://Assets/Sprites/Player/nhảy2 (2).png", 
-            "res://Assets/Sprites/Player/nhảy3 (2).png", 
-            "res://Assets/Sprites/Player/nhảy4 (2).png", 
-            "res://Assets/Sprites/Player/nhảy5.png" 
+        string[] jumpPaths = {
+            "res://Assets/Sprites/Player/nhảy1 (2).png",
+            "res://Assets/Sprites/Player/nhảy2 (2).png",
+            "res://Assets/Sprites/Player/nhảy3 (2).png",
+            "res://Assets/Sprites/Player/nhảy4 (2).png",
+            "res://Assets/Sprites/Player/nhảy5.png"
         };
 
         foreach (var path in jumpPaths)
@@ -175,24 +175,24 @@ public static class SpriteHelper
                 dieTextures.Add(SmartPad(dieImage2, bounds, 240, 240));
             }
         }
-        
-        if (dieTextures.Count > 0) 
+
+        if (dieTextures.Count > 0)
         {
             anims["die"] = dieTextures.ToArray();
             anims["hurt"] = new[] { dieTextures[0] }; // Dùng frame đầu tiên của bộ chết làm frame bị thương
         }
-        else 
+        else
         {
             anims["hurt"] = new[] { defaultFrame };
             anims["die"] = new[] { defaultFrame };
         }
 
         _cachedPlayerFrames = BuildSpriteFrames(anims, 12.0f);
-        
+
         // Giảm tốc độ animation nhảy/rơi để trông thật hơn (mặc định đang là 12)
         if (_cachedPlayerFrames.HasAnimation("jump")) _cachedPlayerFrames.SetAnimationSpeed("jump", 8.0f);
         if (_cachedPlayerFrames.HasAnimation("fall")) _cachedPlayerFrames.SetAnimationSpeed("fall", 8.0f);
-        
+
         return _cachedPlayerFrames;
     }
 
@@ -315,7 +315,7 @@ public static class SpriteHelper
         int targetMaxWidth = outW - 20;
 
         float finalScale = customScale;
-        
+
         // Trôi về logic cũ: Tự động scale để vừa khung hình NẾU không ép buộc kích thước tuyệt đối
         if (!forceAbsoluteScale)
         {
@@ -368,17 +368,17 @@ public static class SpriteHelper
     {
         int w = img.GetWidth();
         int h = img.GetHeight();
-        
+
         // Focus on the top 45% of the sprite where the head/eyes are
         int analysisHeight = (int)(h * 0.45f);
         int centerX = w / 2;
-        
+
         long redPixelsXSum = 0;
         int redPixelsCount = 0;
-        
+
         double weightedXDist = 0;
         long totalPixels = 0;
-        
+
         for (int y = 0; y < analysisHeight; y++)
         {
             for (int x = 0; x < w; x++)
@@ -400,7 +400,7 @@ public static class SpriteHelper
                 }
             }
         }
-        
+
         // If we found eyes, they are the absolute ground truth
         if (redPixelsCount > 0)
         {
@@ -410,7 +410,7 @@ public static class SpriteHelper
         }
 
         if (totalPixels == 0) return false;
-        
+
         // Fallback to mass distribution
         return weightedXDist > 0;
     }
@@ -423,13 +423,13 @@ public static class SpriteHelper
         int rightCount = 0;
         var boundsList = new List<Rect2I>();
         int validCount = 0;
-        
+
         // 1. Analyze all frames
         foreach (var img in frames)
         {
             var bounds = FindBounds(img);
             boundsList.Add(bounds);
-            
+
             if (bounds.Size.X > 5 && bounds.Size.Y > 5)
             {
                 var crop = Image.CreateEmpty(bounds.Size.X, bounds.Size.Y, false, Image.Format.Rgba8);
@@ -438,12 +438,12 @@ public static class SpriteHelper
                 validCount++;
             }
         }
-        
+
         // 2. Determine flip decision independently for this set
         bool needsFlip = (validCount > 0 && (float)rightCount / validCount > 0.4f);
-        
+
         GD.Print($"[SpriteHelper] Normalizing Animation '{animName}': RightCount={rightCount}/{validCount}, NeedsFlip={needsFlip}");
-        
+
         // 3. Create textures with consistent flipping
         var textures = new List<Texture2D>();
         for (int i = 0; i < frames.Count; i++)
@@ -588,6 +588,8 @@ public static class SpriteHelper
         // Di chuyển dùng các khung hình uốn lượn liên tiếp
         var anims = new Dictionary<string, Texture2D[]>();
         anims["walk"] = CreateNormalizedAnimation(rawFramesWalk, 350, 350, 1.0f, "snake_walk").ToArray();
+        // IsometricSnake calls "idle" explicitly in AI state transitions.
+        anims["idle"] = anims["walk"];
 
         var framesHurtRaw = new List<Image>();
         if (imgHurt != null)
@@ -602,7 +604,7 @@ public static class SpriteHelper
 
         // Normalize independently to handle inconsistent source sheets
         var texturesHurt = CreateNormalizedAnimation(framesHurtRaw, 350, 350, 1.0f, "snake_hurt");
-        
+
         anims["attack"] = new[] { anims["walk"][0], anims["walk"][1], anims["walk"].Length > 3 ? anims["walk"][3] : anims["walk"][0], anims["walk"][0] };
         anims["hurt"] = new[] { texturesHurt[0] };
         anims["die"] = new[] { texturesHurt.Count > 1 ? texturesHurt[1] : texturesHurt[0] };
@@ -645,20 +647,20 @@ public static class SpriteHelper
             var img = tex.GetImage();
             img.Decompress();
             img.Convert(Image.Format.Rgba8);
-            
+
             int w = img.GetWidth(), h = img.GetHeight();
             Color corner = img.GetPixel(4, 4); // Sample sát góc hơn để tránh đè vào Boss
-            
+
             // 1. Thuật toán Chroma Key mạnh mẽ hơn cho nền Neon Green
             for (int x = 0; x < w; x++)
             {
                 for (int y = 0; y < h; y++)
                 {
                     Color p = img.GetPixel(x, y);
-                    
+
                     // Nền xanh neon (Pure Green): G lớn và (G - R) lớn, (G - B) lớn
                     float greenDiff = p.G - Math.Max(p.R, p.B);
-                    
+
                     // Nếu là pixel cực kỳ xanh (Chroma Key) -> Xóa sạch
                     if (p.G > 0.4f && greenDiff > 0.15f)
                     {
@@ -774,22 +776,22 @@ public static class SpriteHelper
         allImages["attack_throw"] = new List<Image> { getImg("prep2"), getImg("ready"), getImg("throw"), getImg("end") };
         // CHIÊU MỚI: Bắn năng lượng  
         allImages["attack_energy"] = new List<Image> { getImg("power"), getImg("energy"), getImg("energy"), getImg("end") };
-        
+
         allImages["power_up"] = new List<Image> { getImg("power"), getImg("power"), getImg("power") };
         allImages["attack_prepare_2"] = new List<Image> { getImg("prep2") };
         allImages["attack_ready"] = new List<Image> { getImg("ready") };
         // Thêm hurt và die dùng combat_idle và hit_block (Die sẽ dùng bộ ảnh mới)
         allImages["hurt"] = new List<Image> { getImg("hit_block") ?? imgIdle };
-        allImages["die"] = new List<Image> { 
-            getImg("chet0"), getImg("chet1"), getImg("chet2"), 
-            getImg("chet3"), getImg("chet4"), getImg("chet5"), getImg("chet6") 
+        allImages["die"] = new List<Image> {
+            getImg("chet0"), getImg("chet1"), getImg("chet2"),
+            getImg("chet3"), getImg("chet4"), getImg("chet5"), getImg("chet6")
         };
 
         // ĐĂNG KÝ CÁC CHIÊU THỨC MỚI VÀO allImages
         allImages["attack_chem"] = new List<Image> { getImg("chem"), getImg("chem1"), getImg("chem2"), getImg("chem3") };
         allImages["attack_ngang"] = new List<Image> { getImg("ngang1"), getImg("ngang2") };
         allImages["attack_tren"] = new List<Image> { getImg("tren1"), getImg("tren2") };
-        
+
         // ANIMATION TRIỆU HỒI CHUYÊN DỤNG (Không bị nhầm với đỡ đòn)
         allImages["summon"] = new List<Image> { getImg("power") };
 
@@ -809,7 +811,7 @@ public static class SpriteHelper
                 float frameScale = (float)targetBodyHeight / b.Size.Y;
                 float maxWidthScale = (float)(outSize - 20) / b.Size.X;
                 if (frameScale > maxWidthScale) frameScale = maxWidthScale;
-                
+
                 textures.Add(SmartPad(img, b, outSize, outSize, frameScale, false, 1.0f, true));
             }
             if (textures.Count > 0) anims[entry.Key] = textures.ToArray();
@@ -897,7 +899,7 @@ public static class SpriteHelper
         for (int i = 0; i < animNames.Length; i++)
         {
             if (animNames[i] == "SKIP") continue;
-            
+
             if (i < rows.Count)
             {
                 var rawRowImages = new List<Image>();
@@ -907,10 +909,10 @@ public static class SpriteHelper
                     crop.BlitRect(bossImg, rect, Vector2I.Zero);
                     rawRowImages.Add(crop);
                 }
-                
+
                 // Chuẩn hóa phát hiện hướng ĐỘC LẬP cho từng hàng
                 var textures = CreateNormalizedAnimation(rawRowImages, outSize, outSize, 1.0f, $"final_boss_{animNames[i]}");
-                
+
                 anims[animNames[i]] = textures.ToArray();
                 GD.Print($"[FinalBossHelper] Assigned Row {i} to {animNames[i]} ({textures.Count} frames) normalized to LEFT.");
             }
@@ -968,7 +970,7 @@ public static class SpriteHelper
         int outSize = 512;
 
         GD.Print($"[BossHelper] Slicing BossRan.png into {cols}x{rows} grid...");
-        
+
         // 1. Cắt thô theo Grid
         var rawFrames = SliceSpriteSheetGridRaw(bossImg, cols, rows);
         var anims = new Dictionary<string, Texture2D[]>();
@@ -1021,11 +1023,11 @@ public static class SpriteHelper
     {
         var crop = Image.CreateEmpty(w, h, false, Image.Format.Rgba8);
         for (int px = 0; px < w; px++) for (int py = 0; py < h; py++)
-            {
-                int sx = x + px, sy = y + py;
-                if (sx >= 0 && sy >= 0 && sx < source.GetWidth() && sy < source.GetHeight())
-                    crop.SetPixel(px, py, source.GetPixel(sx, sy));
-            }
+        {
+            int sx = x + px, sy = y + py;
+            if (sx >= 0 && sy >= 0 && sx < source.GetWidth() && sy < source.GetHeight())
+                crop.SetPixel(px, py, source.GetPixel(sx, sy));
+        }
         return ImageTexture.CreateFromImage(crop);
     }
 
@@ -1044,10 +1046,10 @@ public static class SpriteHelper
         // We sample at different distances to catch both white and gray squares
         List<Color> samples = new List<Color>();
         samples.Add(img.GetPixel(0, 0));
-        samples.Add(img.GetPixel(Math.Min(4, w-1), Math.Min(4, h-1)));
-        samples.Add(img.GetPixel(Math.Min(12, w-1), Math.Min(12, h-1)));
-        samples.Add(img.GetPixel(Math.Min(20, w-1), Math.Min(4, h-1)));
-        
+        samples.Add(img.GetPixel(Math.Min(4, w - 1), Math.Min(4, h - 1)));
+        samples.Add(img.GetPixel(Math.Min(12, w - 1), Math.Min(12, h - 1)));
+        samples.Add(img.GetPixel(Math.Min(20, w - 1), Math.Min(4, h - 1)));
+
         Color bg1 = samples[0];
         Color bg2 = samples[0];
 
@@ -1091,13 +1093,13 @@ public static class SpriteHelper
                 else if (isCheckered)
                 {
                     if (IsCheckeredPixel(p, bg1, bg2)) remove = true;
-                    
+
                     // Specific fix: Remove black grid lines (typically near edges or centers of the sheet cells)
                     bool isBlackLine = p.R < 0.15f && p.G < 0.15f && p.B < 0.15f;
                     // For the princess 2x2 sheet, lines are at edges and exactly in the middle
-                    bool isAtGridLine = x <= 2 || x >= w - 3 || y <= 2 || y >= h - 3 || 
-                                        Math.Abs(x - w/2) <= 1 || Math.Abs(y - h/2) <= 1;
-                    
+                    bool isAtGridLine = x <= 2 || x >= w - 3 || y <= 2 || y >= h - 3 ||
+                                        Math.Abs(x - w / 2) <= 1 || Math.Abs(y - h / 2) <= 1;
+
                     if (isBlackLine && isAtGridLine) remove = true;
                 }
                 else
@@ -1137,7 +1139,7 @@ public static class SpriteHelper
 
         // Remove any grayish pixels that are bright enough to be background
         bool isGrayish = Math.Abs(p.R - p.G) < 0.2f && Math.Abs(p.G - p.B) < 0.2f;
-        if (isGrayish && p.R > 0.25f) return true; 
+        if (isGrayish && p.R > 0.25f) return true;
 
         return false;
     }

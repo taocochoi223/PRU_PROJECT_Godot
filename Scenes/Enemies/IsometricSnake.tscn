@@ -1,0 +1,65 @@
+[gd_scene load_steps=5 format=3 uid="uid://isometric_snake_001"]
+
+[ext_resource type="Script" path="res://Scripts/Enemies/IsometricSnake.cs" id="1"]
+[ext_resource type="Texture2D" uid="uid://cc8ix2hgvi4fo" path="res://Assets/Sprites/Enemies/snack3_move.png" id="2_snake"]
+[ext_resource type="Texture2D" uid="uid://cjowgafgtstn3" path="res://Assets/Sprites/Enemies/snack_bidanh.png" id="3_snake"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_snake"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_snake")
+}],
+"loop": true,
+"name": &"attack",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("3_snake")
+}],
+"loop": false,
+"name": &"die",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_snake")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_snake")
+}],
+"loop": true,
+"name": &"walk",
+"speed": 8.0
+}]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_snake"]
+radius = 10.0
+height = 30.0
+
+[node name="IsometricSnake" type="CharacterBody2D"]
+y_sort_enabled = true
+collision_layer = 4
+collision_mask = 3
+script = ExtResource("1")
+
+[node name="Shadow" type="Polygon2D" parent="."]
+color = Color(0, 0, 0, 0.35)
+polygon = PackedVector2Array(-12, 0, -8, -4, 0, -6, 8, -4, 12, 0, 8, 4, 0, 6, -8, 4)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+sprite_frames = SubResource("SpriteFrames_snake")
+animation = &"idle"
+offset = Vector2(0, -12)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -4)
+rotation = 1.5708
+shape = SubResource("CapsuleShape2D_snake")

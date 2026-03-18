@@ -508,7 +508,8 @@ public partial class ChanTinh : BaseEnemy
         // Chỉ trúng đòn nếu đứng đúng hướng mặt của Boss
         if (dist <= AttackRange && facingLeft == playerLeft)
         {
-            TargetPlayer.TakeDamage(AttackDamage);
+            if (TargetPlayer.HasMethod("TakeDamage"))
+                TargetPlayer.Call("TakeDamage", AttackDamage);
             _hasHitTarget = true;
             GD.Print("[ChanTinh] Boss hit player!");
         }

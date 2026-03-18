@@ -42,7 +42,7 @@ public partial class BaseEnemy : CharacterBody2D
     protected ColorRect _healthBarFill;
 
     // Player reference
-    protected Player TargetPlayer;
+    protected Node2D TargetPlayer;
 
     public enum EnemyState
     {
@@ -178,11 +178,11 @@ public partial class BaseEnemy : CharacterBody2D
             // --- FIX KẸT TRÊN ĐẦU PLAYER ---
             // Kiểm tra xem quái có đang đứng đè lên Player không
             var floorCollision = GetLastSlideCollision();
-            if (floorCollision != null && floorCollision.GetCollider() is Player player)
+            if (floorCollision != null && floorCollision.GetCollider() is Node2D player && player.IsInGroup("player"))
             {
                 // Nếu đang đứng trên đầu Player, trượt quái sang một bên để không bị "dính"
                 float pushDir = GlobalPosition.X > player.GlobalPosition.X ? 1.0f : -1.0f;
-                velocity.X += pushDir * 500f * (float)delta; 
+                velocity.X += pushDir * 500f * (float)delta;
             }
         }
 
@@ -371,12 +371,12 @@ public partial class BaseEnemy : CharacterBody2D
         GameManager.Instance.AddScore(ScoreValue);
 
         // Hồi máu cho player khi giết quái
-        var player = GetTree().GetFirstNodeInGroup("player") as Player;
-        if (player != null && !player.IsQueuedForDeletion())
+        var player = GetTree().GetFirstNodeInGroup("player") as Node;
+        if (player != null && !player.IsQueuedForDeletion() && player.HasMethod("Heal"))
         {
             GD.Print("Enemy died, healing player");
             int healAmount = (int)(GameManager.Instance.MaxPlayerHealth * 0.10f); // Hồi 10% máu khi giết quái
-            player.Heal(healAmount);
+            player.Call("Heal", healAmount);
         }
 
         // Disable collisions
@@ -412,9 +412,9 @@ public partial class BaseEnemy : CharacterBody2D
 
     private void OnDetectAreaBodyEntered(Node2D body)
     {
-        if (body is Player player)
+        if (body != null && body.IsInGroup("player"))
         {
-            TargetPlayer = player;
+            TargetPlayer = body;
             if (CurrentState == EnemyState.Patrol)
             {
                 CurrentState = EnemyState.Chase;
@@ -424,7 +424,7 @@ public partial class BaseEnemy : CharacterBody2D
 
     private void OnDetectAreaBodyExited(Node2D body)
     {
-        if (body is Player)
+        if (body != null && body == TargetPlayer)
         {
             TargetPlayer = null;
             CurrentState = EnemyState.Patrol;
@@ -434,10 +434,10 @@ public partial class BaseEnemy : CharacterBody2D
     private void OnHitAreaBodyEntered(Node2D body)
     {
         if (IsDead) return; // Bảo vệ: Quái chết thì không chém được ai nữa
-        
-        if (body is Player player)
+
+        if (body != null && body.IsInGroup("player") && body.HasMethod("TakeDamage"))
         {
-            player.TakeDamage(AttackDamage);
+            body.Call("TakeDamage", AttackDamage);
         }
     }
 

@@ -49,13 +49,14 @@ public partial class CaveDoor : Area2D
     private void OnBodyEntered(Node2D body)
     {
         if (_isTriggered) return;
-        if (body is not Player player) return;
+        if (body == null || !body.IsInGroup("player")) return;
 
         _isTriggered = true;
         _hintLabel.Visible = false;
 
         // Ép Player chuyển sang Cutscene Mode: Khóa phím, tiếp tục chạy bộ vào cửa phía bên phải
-        player.WalkIntoCave(1f);
+        if (body.HasMethod("WalkIntoCave"))
+            body.Call("WalkIntoCave", 1f);
 
         // Delay 1 giây đợi nhân vật kịp lặn vào bóng tối của hang rồi mới tải Level 2
         var timer = GetTree().CreateTimer(1.0f);
@@ -64,7 +65,7 @@ public partial class CaveDoor : Area2D
 
     private void OnBodyExited(Node2D body)
     {
-        if (body is Player && !_isTriggered)
+        if (body != null && body.IsInGroup("player") && !_isTriggered)
         {
             _hintLabel.Visible = false;
         }
