@@ -1,21 +1,22 @@
 [gd_scene format=3 uid="uid://cavedoor001"]
 
 [ext_resource type="Script" path="res://Scripts/Levels/CaveDoor.cs" id="1"]
-[ext_resource type="Texture2D" uid="uid://6bnkijod1bhw" path="res://Assets/Sprites/Backgrounds/Cave_door.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://6osoivdvcth1" path="res://Assets/Sprites/Backgrounds/Cave_door.png" id="2"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_door"]
 size = Vector2(250, 1500)
 
 [node name="CaveDoor" type="Area2D" unique_id=1849953065]
+position = Vector2(227, -3)
 collision_layer = 0
 script = ExtResource("1")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1380566618]
-position = Vector2(0, -60)
+position = Vector2(237, -13)
 shape = SubResource("RectangleShape2D_door")
 
 [node name="DoorVisual" type="Sprite2D" parent="." unique_id=1531610129]
 texture_filter = 1
-position = Vector2(-43.999985, -59.999992)
-scale = Vector2(1.203211, 1.0399563)
+position = Vector2(164.00002, -27.000004)
+scale = Vector2(1.6466361, 1.4919335)
 texture = ExtResource("2")

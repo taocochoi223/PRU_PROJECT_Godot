@@ -30,10 +30,20 @@ public partial class Level1Builder : Node2D
     private const float MAP_W = 4800f;
     private const float MAP_H = 1200f;
 
+    // Các Texture cây mới
+    private Texture2D _texTreePixel;
+    private Texture2D _texBanana;
+    private Texture2D _texPalm;
+
     private Random _rng = new Random(42); // Seed cố định cho map nhất quán
 
     public override void _Ready()
     {
+        // Load textures (.png) - Cập nhật lại đường dẫn đúng
+        _texTreePixel = GD.Load<Texture2D>("res://Assets/Sprites/Environment/tree_pixel.png");
+        _texBanana = GD.Load<Texture2D>("res://Assets/Sprites/Environment/banana_tree.png");
+        _texPalm = GD.Load<Texture2D>("res://Assets/Sprites/Environment/palm_tree.png");
+
         BuildBackground();
         BuildPaths();
         BuildWaterFeatures();
@@ -42,12 +52,14 @@ public partial class Level1Builder : Node2D
         BuildFog();
         BuildGrassPatches();
         BuildFireflies();
+        BuildPits();
         BuildSpikeTrap_Zone2();
         BuildSpikeTrap_Zone3();
         BuildSpikeTrap_Zone4();
         BuildEnemySnakes();
         BuildEnemyEagles();
         BuildCheckpoints();
+        BuildForestTrees();
         BuildCaveEntrance();
     }
 
@@ -614,6 +626,148 @@ public partial class Level1Builder : Node2D
     }
 
     // ═══════════════════════════════════════════════════════════
+    //  HỆ THỐNG CÂY CỐI — Đa dạng hóa rừng Việt Nam (Chuối, Dừa)
+    // ═══════════════════════════════════════════════════════════
+    private void BuildForestTrees()
+    {
+        // Thêm một lớp cây đa dạng từ code thay vì chỉ có cây tĩnh
+        var treeParent = GetNodeOrNull<Node2D>("../Trees");
+        if (treeParent == null) return;
+
+        // Xóa các cây tĩnh trong Scene để code tự quản lý hoàn toàn
+        foreach (var child in treeParent.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        // Tạo 60 cây ngẫu nhiên (giảm số lượng để rừng thông thoáng hơn)
+        int plantedCount = 0;
+        int attempts = 0;
+        int maxAttempts = 300; // Giới hạn số lần thử
+
+        while (plantedCount < 60 && attempts < maxAttempts)
+        {
+            attempts++;
+            Vector2 pos = new Vector2(
+                (float)_rng.NextDouble() * MAP_W,
+                (float)_rng.NextDouble() * (MAP_H - 150) + 75
+            );
+
+            // KIỂM TRA TRÙNG LẶP: Không trồng cây lên đường mòn, hồ nước, hoặc hố bẫy
+            if (IsPositionBlocked(pos)) continue;
+
+            // Tỷ lệ xuất hiện: 50% Cây cổ thụ, 30% Cây Chuối, 20% Cây Dừa
+            double dice = _rng.NextDouble();
+            Texture2D tex = _texTreePixel;
+            float scale = 1.0f;
+
+            if (dice < 0.5) {
+                tex = _texTreePixel;
+                scale = 0.8f + (float)_rng.NextDouble() * 0.5f;
+            }
+            else if (dice < 0.8) {
+                tex = _texBanana;
+                scale = 0.6f + (float)_rng.NextDouble() * 0.4f;
+            }
+            else {
+                tex = _texPalm;
+                scale = 0.9f + (float)_rng.NextDouble() * 0.4f;
+            }
+
+            CreateTreeItem(treeParent, pos, tex, scale);
+            plantedCount++;
+        }
+    }
+
+    /// <summary>
+    /// Kiểm tra xem vị trí có bị chặn bởi hồ, hố bẫy hoặc đường mòn không
+    /// </summary>
+    private bool IsPositionBlocked(Vector2 pos)
+    {
+        // 1. Kiểm tra Đường mòn (Dựa trên danh sách pathPoints hiện có trong BuildPaths)
+        Vector2[] pathPoints = {
+            new(100, 600), new(400, 550), new(700, 500), new(1000, 550),
+            new(1300, 600), new(1600, 500), new(1900, 450), new(2200, 500),
+            new(2500, 550), new(2800, 500), new(3100, 450), new(3400, 500),
+            new(3700, 550), new(4000, 500), new(4300, 500), new(4600, 550)
+        };
+        foreach (var p in pathPoints) {
+            if (pos.DistanceTo(p) < 80) return true; // Tránh đường mòn 80px
+        }
+
+        // 2. Kiểm tra Hồ nước (Ví dụ các vị trí hồ đã đặt)
+        Vector2[] ponds = { new(1400, 350), new(2600, 750), new(800, 200), new(3200, 900) };
+        foreach (var p in ponds) {
+            if (pos.DistanceTo(p) < 130) return true; // Tránh hồ nước 130px
+        }
+
+        // 3. Kiểm tra Hố bẫy (Các vị trí hố bẫy vừa thêm)
+        Vector2[] pits = { new(1200, 600), new(2500, 850), new(3800, 400), new(1800, 300), new(1800, 500) };
+        foreach (var p in pits) {
+            if (pos.DistanceTo(p) < 70) return true; // Tránh hố bẫy 70px
+        }
+
+        // 4. KIỂM TRA KHOẢNG TRỐNG CỬA HANG (Tránh 4300 -> 4800)
+        if (pos.X > 4300) return true; 
+
+        return false;
+    }
+
+    private void CreateTreeItem(Node2D parent, Vector2 pos, Texture2D tex, float scale)
+    {
+        if (tex == null) return;
+        
+        var tree = new Sprite2D();
+        tree.Texture = tex;
+        tree.Position = pos;
+        tree.Scale = new Vector2(scale, scale);
+        tree.YSortEnabled = true;
+        tree.Offset = new Vector2(0, -32); // Thụt gốc cây lên trên để Y-sort đúng
+
+        // Thêm Shader đổ bóng cho sinh động
+        var shader = GD.Load<Shader>("res://Assets/Shaders/drop_shadow.gdshader");
+        if (shader != null) {
+            var mat = new ShaderMaterial();
+            mat.Shader = shader;
+            mat.SetShaderParameter("shadow_color", new Color(0, 0, 0, 0.4f));
+            mat.SetShaderParameter("offset", new Vector2(8, 8));
+            tree.Material = mat;
+        }
+
+        parent.AddChild(tree);
+        // Gán Owner để cây hiển thị trên bảng Scene của Editor
+        tree.Owner = GetTree().EditedSceneRoot;
+
+        // THÊM VÙNG NHẬN DIỆN LÀM MỜ (Detection Area)
+        var area = new Area2D();
+        area.CollisionLayer = 0;
+        area.CollisionMask = 1; // Nhận diện Player (Layer 1)
+        
+        var col = new CollisionShape2D();
+        var shape = new CircleShape2D();
+        shape.Radius = 60 * scale; // Vùng mờ tùy theo kích thước cây
+        col.Shape = shape;
+        col.Position = new Vector2(0, -50); // Đặt ở phần tán cây
+        
+        area.AddChild(col);
+        tree.AddChild(area);
+
+        // Kết nối sự kiện làm mờ
+        area.BodyEntered += (body) => {
+            if (body is IsometricPlayer) {
+                var tw = tree.CreateTween();
+                tw.TweenProperty(tree, "modulate:a", 0.3f, 0.25f);
+            }
+        };
+        area.BodyExited += (body) => {
+            if (body is IsometricPlayer) {
+                var tw = tree.CreateTween();
+                tw.TweenProperty(tree, "modulate:a", 1.0f, 0.25f);
+            }
+        };
+    }
+
+    // ═══════════════════════════════════════════════════════════
     //  CỬA HANG — Điểm kết thúc màn
     // ═══════════════════════════════════════════════════════════
     private void BuildCaveEntrance()
@@ -688,6 +842,50 @@ public partial class Level1Builder : Node2D
         }
 
         AddChild(cave);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  HỐ BẪY — Chướng ngại vật nguy hiểm
+    // ═══════════════════════════════════════════════════════════
+    private void BuildPits()
+    {
+        // Thêm một vài hố bẫy tại các vị trí chiến thuật
+        CreatePit(new Vector2(1200, 600), 45, 22); // Chặn đường chính Zone 2
+        CreatePit(new Vector2(2500, 850), 55, 28); // Gần khu vực suối Zone 3
+        CreatePit(new Vector2(3800, 400), 40, 20); // Gần cuối map Zone 5
+                                                   
+        // Một cặp hố nhỏ tạo thành khe hẹp
+        CreatePit(new Vector2(1800, 300), 30, 15);
+        CreatePit(new Vector2(1800, 500), 30, 15);
+    }
+
+    private void CreatePit(Vector2 pos, float rx, float ry)
+    {
+        // 1. Phần hình ảnh hiển thị hố
+        var pitVisual = new Polygon2D();
+        pitVisual.ZIndex = -95; // Nằm trên mặt đất nhưng dưới cỏ/cây
+        pitVisual.Position = pos;
+        pitVisual.Color = new Color(0.02f, 0.02f, 0.02f); // Màu đen sâu thẳm
+        pitVisual.Polygon = MakeEllipsePolygon(rx, ry, 16);
+        AddChild(pitVisual);
+
+        // Viền hố để trông tự nhiên hơn
+        var edge = new Polygon2D();
+        edge.ZIndex = -96;
+        edge.Position = pos;
+        edge.Color = PathEdge;
+        edge.Polygon = MakeEllipsePolygon(rx + 4, ry + 2, 16);
+        AddChild(edge);
+
+        // 2. Logic va chạm (Sử dụng class IsometricPit)
+        var pitLogic = new IsometricPit();
+        pitLogic.Position = pos;
+        
+        var collision = new CollisionPolygon2D();
+        collision.Polygon = pitVisual.Polygon;
+        pitLogic.AddChild(collision);
+        
+        AddChild(pitLogic);
     }
 
     // ═══════════════════════════════════════════════════════════

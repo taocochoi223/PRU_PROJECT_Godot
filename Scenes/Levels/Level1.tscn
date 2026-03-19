@@ -1,11 +1,14 @@
-[gd_scene load_steps=8 format=3 uid="uid://level1001"]
+[gd_scene format=3 uid="uid://level1001"]
 
-[ext_resource type="Script" path="res://Scripts/Levels/LevelManager.cs" id="1"]
+[ext_resource type="Script" uid="uid://362axwqvv1fo" path="res://Scripts/Levels/LevelManager.cs" id="1"]
 [ext_resource type="PackedScene" path="res://Scenes/Player/IsometricPlayer.tscn" id="2"]
-[ext_resource type="Script" path="res://Scripts/Levels/Level1Builder.cs" id="3"]
+[ext_resource type="Script" uid="uid://dssxwhf7yl3of" path="res://Scripts/Levels/Level1Builder.cs" id="3"]
 [ext_resource type="Texture2D" uid="uid://klkjw0k7w17n" path="res://Assets/Sprites/Environment/tree_pixel.png" id="4"]
-[ext_resource type="Shader" path="res://Assets/Shaders/drop_shadow.gdshader" id="5"]
-[ext_resource type="PackedScene" path="res://Scenes/UI/HUD.tscn" id="6"]
+[ext_resource type="Shader" uid="uid://bphe2b8m3aic5" path="res://Assets/Shaders/drop_shadow.gdshader" id="5"]
+[ext_resource type="PackedScene" uid="uid://hud001" path="res://Scenes/UI/HUD.tscn" id="6"]
+[ext_resource type="Texture2D" uid="uid://bj5gn3jfmmc35" path="res://Assets/Sprites/Environment/rock_pixel.png" id="8_f3nwb"]
+[ext_resource type="Texture2D" uid="uid://c5a3b5frjfosh" path="res://Assets/Sprites/Environment/banana_tree.png" id="8_jcebb"]
+[ext_resource type="Texture2D" uid="uid://qofl24egiq4o" path="res://Assets/Sprites/Environment/palm_tree.png" id="9_f3nwb"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_shadow"]
 shader = ExtResource("5")
@@ -13,88 +16,43 @@ shader_parameter/shadow_color = Color(0, 0, 0, 0.45)
 shader_parameter/offset = Vector2(8, 8)
 shader_parameter/blur = 0.0
 
-[node name="Level1" type="Node2D"]
+[node name="Level1" type="Node2D" unique_id=564729693]
 y_sort_enabled = true
 script = ExtResource("1")
-LevelNumber = 1
 PlayerScene = ExtResource("2")
 
-[node name="SpawnPoint" type="Marker2D" parent="."]
+[node name="SpawnPoint" type="Marker2D" parent="." unique_id=612789147]
 position = Vector2(200, 600)
 
-[node name="LevelBuilder" type="Node2D" parent="."]
+[node name="LevelBuilder" type="Node2D" parent="." unique_id=282919519]
 script = ExtResource("3")
 
-[node name="Trees" type="Node2D" parent="."]
+[node name="Trees" type="Node2D" parent="." unique_id=1275781174]
 y_sort_enabled = true
 
-[node name="Tree01" type="Sprite2D" parent="Trees"]
+[node name="Tree02" type="Sprite2D" parent="Trees" unique_id=2129772253]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
-position = Vector2(180, 380)
+position = Vector2(1925, 3586)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree02" type="Sprite2D" parent="Trees"]
+[node name="Tree04" type="Sprite2D" parent="Trees" unique_id=1174250204]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
-position = Vector2(450, 250)
-texture = ExtResource("4")
-offset = Vector2(0, -32)
-
-[node name="Tree03" type="Sprite2D" parent="Trees"]
-y_sort_enabled = true
-material = SubResource("ShaderMaterial_shadow")
-position = Vector2(650, 700)
-scale = Vector2(1.1, 1.1)
-texture = ExtResource("4")
-offset = Vector2(0, -32)
-
-[node name="Tree04" type="Sprite2D" parent="Trees"]
-y_sort_enabled = true
-material = SubResource("ShaderMaterial_shadow")
-position = Vector2(1000, 320)
+position = Vector2(739.00006, 412.00003)
 scale = Vector2(1.3, 1.3)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree05" type="Sprite2D" parent="Trees"]
+[node name="Tree06" type="Sprite2D" parent="Trees" unique_id=950908115]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
-position = Vector2(1200, 800)
+position = Vector2(3393, 1870)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree06" type="Sprite2D" parent="Trees"]
-y_sort_enabled = true
-material = SubResource("ShaderMaterial_shadow")
-position = Vector2(1550, 350)
-texture = ExtResource("4")
-offset = Vector2(0, -32)
-
-[node name="Tree07" type="Sprite2D" parent="Trees"]
-y_sort_enabled = true
-material = SubResource("ShaderMaterial_shadow")
-position = Vector2(1800, 200)
-scale = Vector2(1.2, 1.2)
-texture = ExtResource("4")
-offset = Vector2(0, -32)
-
-[node name="Tree08" type="Sprite2D" parent="Trees"]
-y_sort_enabled = true
-material = SubResource("ShaderMaterial_shadow")
-position = Vector2(1900, 850)
-texture = ExtResource("4")
-offset = Vector2(0, -32)
-
-[node name="Tree09" type="Sprite2D" parent="Trees"]
-y_sort_enabled = true
-material = SubResource("ShaderMaterial_shadow")
-position = Vector2(2300, 300)
-texture = ExtResource("4")
-offset = Vector2(0, -32)
-
-[node name="Tree10" type="Sprite2D" parent="Trees"]
+[node name="Tree10" type="Sprite2D" parent="Trees" unique_id=1635236359]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
 position = Vector2(2600, 180)
@@ -102,49 +60,190 @@ scale = Vector2(1.4, 1.4)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree11" type="Sprite2D" parent="Trees"]
+[node name="Tree11" type="Sprite2D" parent="Trees" unique_id=1784899031]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
-position = Vector2(2800, 900)
+position = Vector2(2849, 1251)
+scale = Vector2(1.7277777, 2.1666667)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree12" type="Sprite2D" parent="Trees"]
+[node name="Tree11" type="Sprite2D" parent="Trees/Tree11" unique_id=660866631]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
-position = Vector2(3100, 250)
+position = Vector2(2428.553, 219.69229)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree13" type="Sprite2D" parent="Trees"]
+[node name="Tree12" type="Sprite2D" parent="Trees" unique_id=1330543703]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
-position = Vector2(3400, 800)
-scale = Vector2(1.2, 1.2)
+position = Vector2(5133, 1335)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree14" type="Sprite2D" parent="Trees"]
+[node name="Tree14" type="Sprite2D" parent="Trees" unique_id=1966090005]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
 position = Vector2(3700, 350)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree15" type="Sprite2D" parent="Trees"]
+[node name="Tree15" type="Sprite2D" parent="Trees" unique_id=2009765794]
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
-position = Vector2(4000, 650)
+position = Vector2(4237, 2810)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="Tree_Ancient" type="Sprite2D" parent="Trees"]
-y_sort_enabled = true
+[node name="Tree_Ancient" type="Sprite2D" parent="Trees" unique_id=639640821]
 modulate = Color(0.15, 0.7, 0.35, 1)
+y_sort_enabled = true
 material = SubResource("ShaderMaterial_shadow")
-position = Vector2(4200, 400)
+position = Vector2(4438, 533)
 scale = Vector2(1.8, 1.8)
 texture = ExtResource("4")
 offset = Vector2(0, -32)
 
-[node name="HUD" parent="." instance=ExtResource("6")]
+[node name="HUD" parent="." unique_id=698623705 instance=ExtResource("6")]
+
+[node name="Tree10" type="Sprite2D" parent="." unique_id=180263238]
+y_sort_enabled = true
+material = SubResource("ShaderMaterial_shadow")
+position = Vector2(7049.9995, 630.0001)
+scale = Vector2(1.4, 1.4)
+texture = ExtResource("4")
+offset = Vector2(0, -32)
+
+[node name="Tree_Ancient" type="Sprite2D" parent="." unique_id=54272292]
+modulate = Color(0.15, 0.7, 0.35, 1)
+y_sort_enabled = true
+material = SubResource("ShaderMaterial_shadow")
+position = Vector2(1234, 1357)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("4")
+offset = Vector2(0, -32)
+
+[node name="Tree_Ancient" type="Sprite2D" parent="Tree_Ancient" unique_id=14312753]
+modulate = Color(0.15, 0.7, 0.35, 1)
+y_sort_enabled = true
+material = SubResource("ShaderMaterial_shadow")
+position = Vector2(1493.3334, 1606.6669)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("4")
+offset = Vector2(0, -32)
+
+[node name="Tree_Ancient2" type="Sprite2D" parent="." unique_id=766177058]
+modulate = Color(0.15, 0.7, 0.35, 1)
+y_sort_enabled = true
+material = SubResource("ShaderMaterial_shadow")
+position = Vector2(6380, 3009)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("4")
+offset = Vector2(0, -32)
+
+[node name="Tree09" type="Sprite2D" parent="." unique_id=1091253885]
+y_sort_enabled = true
+material = SubResource("ShaderMaterial_shadow")
+position = Vector2(5074, 425)
+texture = ExtResource("4")
+offset = Vector2(0, -32)
+
+[node name="Tree_Ancient3" type="Sprite2D" parent="." unique_id=2075680266]
+modulate = Color(0.15, 0.7, 0.35, 1)
+y_sort_enabled = true
+material = SubResource("ShaderMaterial_shadow")
+position = Vector2(2443, 4842)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("4")
+offset = Vector2(0, -32)
+
+[node name="Tree_Ancient4" type="Sprite2D" parent="." unique_id=1454723259]
+modulate = Color(0.15, 0.7, 0.35, 1)
+y_sort_enabled = true
+material = SubResource("ShaderMaterial_shadow")
+position = Vector2(652, 2675)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("4")
+offset = Vector2(0, -32)
+
+[node name="Tree_Ancient5" type="Sprite2D" parent="." unique_id=421027966]
+modulate = Color(0.15, 0.7, 0.35, 1)
+y_sort_enabled = true
+material = SubResource("ShaderMaterial_shadow")
+position = Vector2(5818, 3947)
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("4")
+offset = Vector2(0, -32)
+
+[node name="RockPixel" type="Sprite2D" parent="." unique_id=53881257]
+position = Vector2(3377, 3277)
+texture = ExtResource("8_f3nwb")
+
+[node name="RockPixel2" type="Sprite2D" parent="." unique_id=2019211026]
+position = Vector2(7707, 2585)
+texture = ExtResource("8_f3nwb")
+
+[node name="RockPixel3" type="Sprite2D" parent="." unique_id=756708118]
+position = Vector2(1888, 973)
+texture = ExtResource("8_f3nwb")
+
+[node name="RockPixel4" type="Sprite2D" parent="." unique_id=1971046450]
+position = Vector2(6248, 743)
+texture = ExtResource("8_f3nwb")
+
+[node name="RockPixel5" type="Sprite2D" parent="." unique_id=1256388291]
+position = Vector2(1074, 2985)
+texture = ExtResource("8_f3nwb")
+
+[node name="BananaTree" type="Sprite2D" parent="." unique_id=1377395409]
+position = Vector2(2072, 2309)
+texture = ExtResource("8_jcebb")
+
+[node name="PalmTree" type="Sprite2D" parent="." unique_id=1935726904]
+position = Vector2(5849, 1526)
+texture = ExtResource("9_f3nwb")
+
+[node name="PalmTree2" type="Sprite2D" parent="." unique_id=1627577124]
+position = Vector2(506, 1434)
+texture = ExtResource("9_f3nwb")
+
+[node name="PalmTree3" type="Sprite2D" parent="." unique_id=837305280]
+position = Vector2(4698, 3783)
+texture = ExtResource("9_f3nwb")
+
+[node name="PalmTree4" type="Sprite2D" parent="." unique_id=1266906374]
+position = Vector2(644, 3568)
+texture = ExtResource("9_f3nwb")
+
+[node name="PalmTree5" type="Sprite2D" parent="." unique_id=887350027]
+position = Vector2(2394, 3937)
+texture = ExtResource("9_f3nwb")
+
+[node name="BananaTree2" type="Sprite2D" parent="." unique_id=1990528148]
+position = Vector2(4007, 988)
+texture = ExtResource("8_jcebb")
+
+[node name="BananaTree3" type="Sprite2D" parent="." unique_id=1352437304]
+position = Vector2(7078, 2816)
+texture = ExtResource("8_jcebb")
+
+[node name="BananaTree4" type="Sprite2D" parent="." unique_id=945274616]
+position = Vector2(5450, 3000)
+texture = ExtResource("8_jcebb")
+
+[node name="BananaTree5" type="Sprite2D" parent="." unique_id=1472529223]
+position = Vector2(1320, 4520)
+texture = ExtResource("8_jcebb")
+
+[node name="BananaTree6" type="Sprite2D" parent="." unique_id=1353286866]
+position = Vector2(1504, 620)
+texture = ExtResource("8_jcebb")
+
+[node name="PalmTree6" type="Sprite2D" parent="." unique_id=197096214]
+position = Vector2(4084, 1817)
+texture = ExtResource("9_f3nwb")
+
+[node name="PalmTree7" type="Sprite2D" parent="." unique_id=1524830107]
+position = Vector2(6709, 3890)
+texture = ExtResource("9_f3nwb")
