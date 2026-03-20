@@ -688,11 +688,10 @@ public partial class IsometricPlayer : CharacterBody2D
             _isAutoWalking = false;
             Velocity = Vector2.Zero;
             GD.Print("Thạch Sanh: Đã vào hang sâu, chuyển màn!");
-            // Gọi chuyển màn
-            var parent = GetParent();
-            if (parent != null && parent.HasMethod("ChangeLevel"))
+            // Gọi chuyển màn trực tiếp qua GameManager
+            if (GameManager.Instance != null)
             {
-                parent.Call("ChangeLevel");
+                GameManager.Instance.CallDeferred("NextLevel");
             }
         }
     }
