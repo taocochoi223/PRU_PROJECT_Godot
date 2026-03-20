@@ -124,6 +124,7 @@ public partial class IsometricPlayer : CharacterBody2D
         
         // TIỀN XỬ LÝ TEXTURE (Tránh bị đơ/lag khi dùng chiêu lần đầu)
         PrepareAxeTexture();
+        PreparePortraitTexture();
         string[] iconPaths = { "res://Assets/Sprites/Player/Skill_1.png", "res://Assets/Sprites/Player/Skill_2.png", "res://Assets/Sprites/Player/Skill_3.png" };
         for (int i = 0; i < 3; i++) GetCleanSkillIcon(iconPaths, i);
     }
@@ -631,33 +632,114 @@ public partial class IsometricPlayer : CharacterBody2D
         if (IsInstanceValid(spinVFX)) spinVFX.QueueFree();
     }
 
+    // --- SKILL 3: EARTH BREAKER ULTIMATE ---
     private async void ExecuteEarthBreaker()
     {
+        if (_isSpinning) return;
         _skill3Timer = Skill3Cooldown;
         _isAttacking = true;
-        _animatedSprite.Play("jump");
-        
-        Vector2 startPos = GlobalPosition;
-        var tw = CreateTween();
-        tw.TweenProperty(this, "global_position:y", startPos.Y - 150, 0.4f);
-        await ToSignal(tw, "finished");
-        
-        var slam = CreateTween();
-        slam.TweenProperty(this, "global_position:y", startPos.Y, 0.15f);
-        await ToSignal(slam, "finished");
 
-        // Impact
+        // TẠM THỜI ĐƯA NHÂN VẬT LÊN LỚP TRÊN CÙNG (Để không bị đá che khi nhảy cực cao)
+        ZIndex = 5;
+
+        // 1. Phát âm thanh kích hoạt cực mạnh (Battle Cry & Energy Build-up)
+        if (_attackSfxPlayer != null)
+        {
+            _attackSfxPlayer.Stream = SFX.GetUltimateSound();
+            _attackSfxPlayer.VolumeDb = 10f;
+            _attackSfxPlayer.Play();
+        }
+
+        // 2. Chuẩn bị Texture chân dung (Xóa nền)
+        PreparePortraitTexture();
+
+        // 3. Hiện Avatar nhân vật cực ngầu bên trái (Cinematic Intro)
+        var portrait = new SkillPortraitUI(_cachedPortraitTexture);
+        GetTree().Root.AddChild(portrait);
+
+        // 4. Chuẩn bị Rìu Thần khổng lồ
+        PrepareAxeTexture();
+        var bigAxe = new Sprite2D();
+        bigAxe.Texture = _cachedAxeTexture;
+        
+        // Tỷ lệ vừa vặn cho Rìu Thần
+        bigAxe.Scale = new Vector2(0.18f, 0.18f);
+        bigAxe.Modulate = new Color(1.1f, 1.1f, 1.1f);
+        bigAxe.ZIndex = 2; // Hiển thị trên nhân vật
+        AddChild(bigAxe);
+
+        // Xác định hướng lật ngang của nhân vật
+        float horizontalSign = Mathf.Sign(_facingDirection.X);
+        if (horizontalSign == 0) horizontalSign = 1;
+
+        // 5. NHẢY LÊN LẤY ĐÀ (High Leap)
+        _animatedSprite.Play("jump");
+        Vector2 startPos = GlobalPosition;
+
+        var leapTween = CreateTween().SetParallel(true);
+        leapTween.TweenProperty(this, "global_position:y", startPos.Y - 200, 0.45f).SetTrans(Tween.TransitionType.Quart).SetEase(Tween.EaseType.Out);
+
+        // Vị trí rìu khởi đầu: Vác sau lưng khi nhảy
+        bigAxe.Position = new Vector2(-40 * horizontalSign, -80);
+        bigAxe.Rotation = -Mathf.Pi / 1.5f * horizontalSign;
+        leapTween.TweenProperty(bigAxe, "position", new Vector2(-20 * horizontalSign, -130), 0.45f);
+        leapTween.TweenProperty(bigAxe, "rotation", -Mathf.Pi / 4 * horizontalSign, 0.45f);
+
+        await ToSignal(leapTween, "finished");
+        if (!IsInstanceValid(this)) return;
+
+        // 6. FREEZE FRAME (Cinematic Pause)
+        Engine.TimeScale = 0.1f;
+        await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
+        if (!IsInstanceValid(this)) return;
+        Engine.TimeScale = 1.0f;
+
+        // 7. GIÁNG ĐÒN THIÊN THẠCH (The Slam)
+        var slamTween = CreateTween().SetParallel(true);
+        slamTween.TweenProperty(this, "global_position:y", startPos.Y, 0.12f).SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.In);
+        
+        // Rìu xoay bổ xuống cực nhanh
+        slamTween.TweenProperty(bigAxe, "rotation", Mathf.Pi * 1.5f * horizontalSign, 0.12f);
+        slamTween.TweenProperty(bigAxe, "position", new Vector2(80 * horizontalSign, 50), 0.12f);
+
+        await ToSignal(slamTween, "finished");
+        if (!IsInstanceValid(this)) return;
+
+        // 8. VA CHẠM ĐỊA CHẤN (Impact)
+        if (IsInstanceValid(bigAxe)) bigAxe.QueueFree();
+
+        if (_attackSfxPlayer != null)
+        {
+            _attackSfxPlayer.Stream = SFX.GetEarthImpactSound();
+            _attackSfxPlayer.VolumeDb = 15f;
+            _attackSfxPlayer.Play();
+        }
+
+        // Rung màn hình
+        var cam = GetViewport().GetCamera2D();
+        if (cam != null && cam.HasMethod("Shake"))
+        {
+            cam.Call("Shake", 1.2f, 50f);
+        }
+
         var crack = new GroundCrackVFX();
-        crack.GlobalPosition = GlobalPosition;
+        Vector2 impactPos = GlobalPosition + new Vector2(80 * horizontalSign, 15);
+        crack.GlobalPosition = impactPos;
         GetParent().AddChild(crack);
 
         var enemies = GetTree().GetNodesInGroup("enemies");
         foreach (Node2D e in enemies)
         {
-            if (GlobalPosition.DistanceTo(e.GlobalPosition) < 300f)
-                if (e.HasMethod("TakeDamage")) e.Call("TakeDamage", AttackDamage * 5);
+            if (impactPos.DistanceTo(e.GlobalPosition) < 400f)
+            {
+                if (e.HasMethod("TakeDamage"))
+                    e.Call("TakeDamage", (int)(AttackDamage * 5.5f));
+            }
         }
+
         _isAttacking = false;
+        ZIndex = 0; // Trả lại lớp cũ để Y-Sort hoạt động bình thường
+        _animatedSprite.Play("idle");
     }
 
     public async void AutoWalkToCave(Vector2 targetPos)
@@ -728,6 +810,36 @@ public partial class IsometricPlayer : CharacterBody2D
             }
         }
         _cachedAxeTexture = ImageTexture.CreateFromImage(img);
+    }
+
+    private void PreparePortraitTexture()
+    {
+        if (_cachedPortraitTexture != null) return;
+
+        var fullTexture = GD.Load<Texture2D>("res://Assets/Sprites/Player/Thach_sanh_hoat_hoa.png");
+        if (fullTexture == null)
+            fullTexture = GD.Load<Texture2D>("res://Assets/Sprites/Player/thach_sanh_portrait_shout.png");
+
+        if (fullTexture == null) { _cachedPortraitTexture = GD.Load<Texture2D>("res://icon.svg"); return; }
+
+        Image img = fullTexture.GetImage();
+        if (img == null) { _cachedPortraitTexture = fullTexture; return; }
+        img.Decompress();
+        img.Convert(Image.Format.Rgba8);
+
+        // TÁCH NỀN CHO AVATAR (Dựa vào màu góc trái trên)
+        Color bgColor = img.GetPixel(1, 1);
+        for (int y = 0; y < img.GetHeight(); y++)
+        {
+            for (int x = 0; x < img.GetWidth(); x++)
+            {
+                Color p = img.GetPixel(x, y);
+                float diff = Mathf.Sqrt(Mathf.Pow(p.R - bgColor.R, 2) + Mathf.Pow(p.G - bgColor.G, 2) + Mathf.Pow(p.B - bgColor.B, 2));
+                if (diff < 0.4f)
+                    img.SetPixel(x, y, new Color(1, 1, 1, 0));
+            }
+        }
+        _cachedPortraitTexture = ImageTexture.CreateFromImage(img);
     }
 
     private Texture2D GetCleanSkillIcon(string[] paths, int index)

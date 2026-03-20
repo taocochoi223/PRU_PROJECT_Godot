@@ -494,9 +494,9 @@ public partial class Player : CharacterBody2D
         PrepareAxeTexture();
         var bigAxe = new Sprite2D();
         bigAxe.Texture = _cachedAxeTexture;
-        // Nhỏ lại 35% so với kích thước cũ (0.3 * 0.35 = 0.105)
-        bigAxe.Scale = new Vector2(0.105f, 0.105f);
-        // Để màu gốc của ảnh bạn thiết kế
+        
+        // Cập nhật tỷ lệ: Vừa vặn hơn để không lọt khỏi màn hình
+        bigAxe.Scale = new Vector2(0.18f, 0.18f);
         bigAxe.Modulate = new Color(1.1f, 1.1f, 1.1f);
         bigAxe.ZIndex = 2;
         AddChild(bigAxe);
@@ -506,7 +506,7 @@ public partial class Player : CharacterBody2D
         Vector2 startPos = GlobalPosition;
 
         var leapTween = CreateTween().SetParallel(true);
-        leapTween.TweenProperty(this, "global_position:y", startPos.Y - 180, 0.4f).SetTrans(Tween.TransitionType.Quart).SetEase(Tween.EaseType.Out);
+        leapTween.TweenProperty(this, "global_position:y", startPos.Y - 200, 0.45f).SetTrans(Tween.TransitionType.Quart).SetEase(Tween.EaseType.Out);
 
         // Thêm âm thanh nhún nhảy cực mạnh
         var jumpPlayer = new AudioStreamPlayer2D();
@@ -516,26 +516,28 @@ public partial class Player : CharacterBody2D
         jumpPlayer.Play();
         jumpPlayer.Finished += () => jumpPlayer.QueueFree();
 
+        // Vị trí rìu khởi đầu: Vác sau lưng khi nhảy
         bigAxe.Position = new Vector2(-40 * _facingDirection, -80);
         bigAxe.Rotation = -Mathf.Pi / 1.5f * _facingDirection;
-        leapTween.TweenProperty(bigAxe, "position", new Vector2(-20 * _facingDirection, -110), 0.4f);
-        leapTween.TweenProperty(bigAxe, "rotation", -Mathf.Pi / 4 * _facingDirection, 0.4f);
+        leapTween.TweenProperty(bigAxe, "position", new Vector2(-20 * _facingDirection, -130), 0.45f);
+        leapTween.TweenProperty(bigAxe, "rotation", -Mathf.Pi / 4 * _facingDirection, 0.45f);
 
         await ToSignal(leapTween, "finished");
         if (!IsInstanceValid(this)) return;
 
-        // 6. FREEZE FRAME
-        Engine.TimeScale = 0.15f;
-        await ToSignal(GetTree().CreateTimer(0.12f), "timeout");
+        // 6. FREEZE FRAME TRƯỚC KHI GIÁNG ĐÒN (Cinematic Pause)
+        Engine.TimeScale = 0.1f;
+        await ToSignal(GetTree().CreateTimer(0.15f), "timeout");
         if (!IsInstanceValid(this)) return;
         Engine.TimeScale = 1.0f;
 
-        // 7. GIÁNG ĐÒN THIÊN THẠCH
+        // 7. GIÁNG ĐÒN THIÊN THẠCH (The Slam)
         var slamTween = CreateTween().SetParallel(true);
-        slamTween.TweenProperty(this, "global_position:y", startPos.Y, 0.15f).SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.In);
-        slamTween.TweenProperty(bigAxe, "rotation", Mathf.Pi * 1.25f * _facingDirection, 0.13f);
-        // Bổ rìu ra phía trước nhân vật
-        slamTween.TweenProperty(bigAxe, "position", new Vector2(70 * _facingDirection, 40), 0.13f);
+        slamTween.TweenProperty(this, "global_position:y", startPos.Y, 0.12f).SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.In);
+        
+        // Rìu xoay bổ xuống cực nhanh
+        slamTween.TweenProperty(bigAxe, "rotation", Mathf.Pi * 1.5f * _facingDirection, 0.12f);
+        slamTween.TweenProperty(bigAxe, "position", new Vector2(80 * _facingDirection, 50), 0.12f);
 
         await ToSignal(slamTween, "finished");
         if (!IsInstanceValid(this)) return;
@@ -545,10 +547,10 @@ public partial class Player : CharacterBody2D
 
         // Phát âm thanh nện đất ĐỊA CHẤN (Vụ nổ cực mạnh)
         _sfxPlayer.Stream = SFX.GetEarthImpactSound();
-        _sfxPlayer.VolumeDb = 12f; // Tăng cực đại uy lực
+        _sfxPlayer.VolumeDb = 15f; // Uy lực vô song
         _sfxPlayer.Play();
 
-        // Tạo thêm một AudioPlayer phụ để chồng âm thanh va chạm kim loại
+        // Tạo thêm âm thanh va chạm kim loại đanh thép
         var metalHit = new AudioStreamPlayer2D();
         metalHit.Stream = SFX.GetAttackSound(3);
         metalHit.VolumeDb = 8f;
@@ -558,26 +560,24 @@ public partial class Player : CharacterBody2D
 
         // Rung màn hình mãnh liệt
         var cam = GetViewport().GetCamera2D() as FollowCamera;
-        if (cam != null) cam.Shake(1.0f, 45f);
+        if (cam != null) cam.Shake(1.2f, 50f);
 
         var crack = new GroundCrackVFX();
-        // Xuất hiện vệt nứt ở phía trước chân nhân vật 60 pixel
-        Vector2 impactPos = GlobalPosition + new Vector2(60 * _facingDirection, 15);
+        // Xuất hiện vệt nứt lớn ở phía trước chân nhân vật
+        Vector2 impactPos = GlobalPosition + new Vector2(80 * _facingDirection, 15);
         crack.GlobalPosition = impactPos;
         GetParent().AddChild(crack);
 
         var enemies = GetTree().GetNodesInGroup("enemies");
         foreach (Node2D e in enemies)
         {
-            // Tính sát thương dựa trên tâm nổ phía trước nhân vật
-            if (impactPos.DistanceTo(e.GlobalPosition) < 350f)
+            // Tầm quét địa chấn rộng lớn
+            if (impactPos.DistanceTo(e.GlobalPosition) < 400f)
             {
                 if (e.HasMethod("TakeDamage"))
                 {
-                    // Skill3 (Thiên địa chấn): 5× ATK = 30×5 = 150 damage
-                    // → kill rắn (150 > 100), hạ 1HP đại bàng (150 = 150), boss giáp sống
-                    // Mạnh nhất nhưng vẫn không 1-shot boss để giữ thử thách
-                    e.Call("TakeDamage", AttackDamage * 5);
+                    // Skill3: 5.5× ATK - Sức mạnh hủy diệt
+                    e.Call("TakeDamage", (int)(AttackDamage * 5.5f));
                 }
             }
         }
@@ -779,6 +779,7 @@ public partial class SpinVFX : Node2D
 }
 
 // --- GROUND CRACK VFX ---
+// --- GROUND CRACK VFX ---
 public partial class GroundCrackVFX : Node2D
 {
     private float _life = 1.0f;
@@ -786,28 +787,70 @@ public partial class GroundCrackVFX : Node2D
 
     public override void _Ready()
     {
-        // Tạo các điểm nứt ngẫu nhiên lan tỏa sang 2 bên
+        // 1. Tạo dữ liệu rãnh nứt (Dạng mạng nhện vỡ vụn, gồ ghề)
         for (int i = 0; i < 20; i++)
         {
-            _points.Add(new Vector2(GD.Randf() * 500 - 250, GD.Randf() * 30));
+            float angle = (float)GD.RandRange(0, Mathf.Pi * 2);
+            float maxDist = (float)GD.RandRange(100, 350);
+            
+            var pts = new List<Vector2>();
+            pts.Add(Vector2.Zero);
+            int segments = 4;
+            for (int s = 1; s <= segments; s++)
+            {
+                float t = (float)s / segments;
+                Vector2 basePos = new Vector2(Mathf.Cos(angle) * maxDist * t, Mathf.Sin(angle) * maxDist * t * 0.45f);
+                Vector2 jitter = new Vector2((float)GD.RandRange(-15, 15), (float)GD.RandRange(-10, 10));
+                pts.Add(basePos + jitter);
+            }
+            _points.AddRange(pts); 
         }
 
+        // 2. HIỆU ỨNG VẬT LÝ NỔ (Explosion)
+        // Bụi đất và mảnh vỡ
+        var rocks = new CpuParticles2D();
+        rocks.Amount = 50;
+        rocks.Lifetime = 1.0f;
+        rocks.Explosiveness = 1.0f;
+        rocks.Direction = new Vector2(0, -1);
+        rocks.Spread = 160f;
+        rocks.Gravity = new Vector2(0, 900);
+        rocks.InitialVelocityMin = 300f;
+        rocks.InitialVelocityMax = 600f;
+        rocks.ScaleAmountMin = 6f;
+        rocks.ScaleAmountMax = 18f;
+        rocks.Color = new Color(0.25f, 0.18f, 0.1f);
+        AddChild(rocks);
+        rocks.Emitting = true;
+
         var tw = CreateTween();
-        tw.TweenProperty(this, "_life", 0f, 1.4f).SetTrans(Tween.TransitionType.Sine);
+        tw.TweenProperty(this, "_life", 0f, 1.8f).SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.Out);
         tw.Finished += () => QueueFree();
     }
+
     public override void _Draw()
     {
-        Color gold = new Color(1.0f, 0.9f, 0.2f, _life);
-        Color lava = new Color(0.9f, 0.3f, 0.0f, _life * 0.6f);
-
-        foreach (var p in _points)
+        // 1. VẼ SÓNG XUNG KÍCH (Shockwave - Thay cho cái ô vuông cam bị lỗi)
+        float shockT = 1.0f - Mathf.Clamp(_life, 0.8f, 1.0f) / 0.2f; // Chỉ hiện trong 20% đầu thời gian
+        if (shockT > 0 && shockT < 1.0f)
         {
-            float t = 1.2f - _life;
-            // Vẽ vệt nứt lan tỏa
-            DrawLine(new Vector2(0, -10), p * t, gold, 8f * _life);
-            // Vẽ các đốm lửa bùng lên
-            DrawCircle(p * t, 15f * _life, lava);
+            Color shockColor = new Color(1, 0.9f, 0.5f, (1.0f - shockT) * 0.5f);
+            DrawCircle(Vector2.Zero, 400f * shockT, shockColor);
+        }
+
+        // 2. VẼ RÃNH NỨT (Màu đen gồ ghề, lõi vàng đỏ)
+        Color edgeColor = new Color(0.08f, 0.04f, 0.02f, _life);
+        Color coreColor = new Color(1.0f, 0.35f, 0.05f, _life * 0.85f);
+
+        for (int i = 0; i < _points.Count; i += 5)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                Vector2 pStart = _points[i + j];
+                Vector2 pEnd = _points[i + j + 1];
+                DrawLine(pStart, pEnd, edgeColor, 14f * _life);
+                DrawLine(pStart, pEnd, coreColor, 4f * _life);
+            }
         }
     }
     public override void _Process(double delta) { QueueRedraw(); }

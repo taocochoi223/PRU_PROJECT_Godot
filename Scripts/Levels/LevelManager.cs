@@ -44,10 +44,10 @@ public partial class LevelManager : Node2D
             GameManager.Instance.UnlockedSkillsCount = 1;
             GD.Print("Level 1: Unlock Skill 1 by default");
         }
-        else if (LevelNumber == 3 || LevelNumber == 4)
+        else if (LevelNumber >= 2)
         {
             GameManager.Instance.UnlockedSkillsCount = 3;
-            GD.Print($"Level {LevelNumber}: Unlock all skills (JKL)");
+            GD.Print($"Level {LevelNumber}: Unlock all skills for testing (Full Skills)");
         }
 
         if (HasNode("SpawnPoint"))
@@ -152,7 +152,7 @@ public partial class LevelManager : Node2D
             _player.AddToGroup("player");
             AddChild(_player);
 
-            if (LevelNumber == 4)
+            if (LevelNumber >= 2)
             {
                 _player.Call("RefreshSkillUI");
             }
