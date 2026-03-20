@@ -21,6 +21,11 @@ public partial class GameManager : Node
     public int PlayerLives { get; set; } = 3; // Mạng của nhân vật
     public bool HasCompletedOnboardingTutorial { get; set; } = false;
     public bool IsTutorialRunning { get; set; } = false;
+    public int TotalEnemies { get; set; } = 0;
+    public int DefeatedEnemies { get; set; } = 0;
+
+    [Signal]
+    public delegate void EnemyCountChangedEventHandler(int defeated, int total);
 
     // ── Transition UI ────────────────────────────────────────────────────────
     private CanvasLayer _transitionLayer;
@@ -142,6 +147,10 @@ public partial class GameManager : Node
     {
         if (_isTransitioning) return;
         _isTransitioning = true;
+        
+        // Safety: check if this is a level load and if we're already loading it
+        if (isLevel && string.IsNullOrEmpty(path)) return;
+
         _targetPath = path;
 
         var tw = CreateTween();
@@ -201,6 +210,8 @@ public partial class GameManager : Node
 
     public void NextLevel()
     {
+        if (_isTransitioning) return; // Bảo vệ: Không chuyển màn 2 lần liên tiếp
+        
         CurrentLevel++;
         CurrentCheckpointIndex = 0; // Reset checkpoint for the new level
         LoadLevel(CurrentLevel);
@@ -304,6 +315,24 @@ public partial class GameManager : Node
         TotalKeys = 0;
         HasCompletedOnboardingTutorial = false;
         IsTutorialRunning = false;
+        TotalEnemies = 0;
+        DefeatedEnemies = 0;
+    }
+
+    public void ResetEnemyCount(int total)
+    {
+        TotalEnemies = total;
+        DefeatedEnemies = 0;
+        EmitSignal(SignalName.EnemyCountChanged, 0, total);
+    }
+
+    public void OnEnemyDefeated()
+    {
+        DefeatedEnemies++;
+        EmitSignal(SignalName.EnemyCountChanged, DefeatedEnemies, TotalEnemies);
+        
+        // Cập nhật điểm thưởng khi diệt quái (nếu chưa có ở chỗ khác)
+        // Note: BaseEnemy already handles AddScore, so we just track the count here.
     }
 
     // ── Required Utilities (FIX MISSING METHODS) ─────────────────────────────

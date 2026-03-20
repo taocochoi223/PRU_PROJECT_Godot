@@ -369,6 +369,7 @@ public partial class BaseEnemy : CharacterBody2D
         CurrentState = EnemyState.Dead;
         AnimSprite.Play("die");
         GameManager.Instance.AddScore(ScoreValue);
+        GameManager.Instance.OnEnemyDefeated();
 
         // Hồi máu cho player khi giết quái
         var player = GetTree().GetFirstNodeInGroup("player") as Node;

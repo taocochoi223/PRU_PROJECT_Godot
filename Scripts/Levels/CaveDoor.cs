@@ -7,7 +7,7 @@ using Godot;
 public partial class CaveDoor : Area2D
 {
     [Export] public string NextScenePath = "res://Scenes/Levels/Level2.tscn";
-    [Export] public float TransitionDelay = 0.5f; // Đợi chút trước khi fade
+    [Export] public float TransitionDelay = 0.0f; // Immediate transition for better feel
 
     private bool _isTriggered = false;
     private bool _isActive = false; // Mặc định bị khóa
@@ -84,9 +84,8 @@ public partial class CaveDoor : Area2D
         if (body.HasMethod("WalkIntoCave"))
             body.Call("WalkIntoCave", 1f);
 
-        // Delay 1 giây đợi nhân vật kịp lặn vào bóng tối của hang rồi mới tải Level 2
-        var timer = GetTree().CreateTimer(1.0f);
-        timer.Timeout += () => DoTransition();
+        // Chuyển màn ngay lập tức khi chạm cửa
+        DoTransition();
     }
 
     private void OnBodyExited(Node2D body)
@@ -102,7 +101,7 @@ public partial class CaveDoor : Area2D
         // Nhờ GameManager kích hoạt Fade Global Màn Hình và load Scene kế!
         if (GameManager.Instance != null)
         {
-            GameManager.Instance.NextLevel();
+            GameManager.Instance.CallDeferred("NextLevel");
         }
     }
 

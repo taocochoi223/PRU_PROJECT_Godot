@@ -30,7 +30,11 @@ public partial class Player : CharacterBody2D
 
     // Cutscene / Auto Walk
     private bool _inCutscene = false;
-    private float _cutsceneDirection = 0f;
+    private float _cutsceneDirection = 1f; // Changed from 0f to 1f
+    // Auto-walk properties
+    private bool _isAutoWalking = false;
+    private Vector2 _autoWalkTarget;
+    private float _autoWalkStopRadius = 25f; // Tăng bán kính dừng để đảm bảo kích hoạt chuyển màn
     private bool _tutorialLockActive = false;
     private string _tutorialExpectedAction = "";
 
@@ -230,11 +234,37 @@ public partial class Player : CharacterBody2D
         }
 
         // === HORIZONTAL MOVEMENT - Di chuyển ngang với acceleration ===
-        float direction = _inCutscene ? _cutsceneDirection : Input.GetAxis("move_left", "move_right");
-        if (!IsActionAllowedByTutorial("move")) direction = 0f;
-
-        float currentAccel;
-        float currentDecel;
+        float currentAccel = Acceleration;
+        float currentDecel = Deceleration;
+        float direction = 0;
+        if (_isAutoWalking)
+        {
+            float distToTarget = _autoWalkTarget.X - GlobalPosition.X;
+            if (Mathf.Abs(distToTarget) > _autoWalkStopRadius)
+            {
+                direction = Mathf.Sign(distToTarget);
+                // Tăng tốc độ chạy vào hang cho "gắt"
+                currentAccel = Acceleration * 2f; 
+            }
+            else
+            {
+                _isAutoWalking = false;
+                Velocity = Vector2.Zero; 
+                _inCutscene = false; 
+                
+                // FORCE: Nếu là Màn 1, khi đi tới vùng đích thì CHẮC CHẮN phải chuyển màn
+                if (GameManager.Instance.CurrentLevel == 1)
+                {
+                    GD.Print("[Player] REACHED AUTO-WALK TARGET. Forcing NextLevel transition.");
+                    // Dùng CallDeferred để tránh xung đột vật lý khi chuyển màn
+                    GameManager.Instance.CallDeferred("NextLevel");
+                }
+            }
+        }
+        else
+        {
+            direction = _inCutscene ? _cutsceneDirection : Input.GetAxis("move_left", "move_right");
+        }
 
         // Khác biệt acceleration trên không và trên mặt đất
         if (onFloor)
@@ -311,6 +341,13 @@ public partial class Player : CharacterBody2D
     private void UpdateAnimation(float direction, float dt)
     {
         if (_isDead) return;
+        
+        // 0. Ưu tiên Tự động đi bộ (Auto-walk for cutscenes) - Luôn hiện animation chạy
+        if (_isAutoWalking)
+        {
+            PlayAnimationIfNotPlaying("run");
+            return;
+        }
 
         // 1. Ưu tiên bị thương
         if (_isHurt)
@@ -629,6 +666,24 @@ public partial class Player : CharacterBody2D
         // Tạo hiệu ứng Player từ từ bị bóng tối nuốt chửng khi đi sâu vào Hang (Mờ trong 1s)
         var tw = CreateTween();
         tw.TweenProperty(this, "modulate:a", 0f, 1.0f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.Out);
+    }
+
+    public void AutoWalkToCave(Vector2 targetPos)
+    {
+        _isAutoWalking = true;
+        _autoWalkTarget = targetPos;
+        _inCutscene = true; // Block input
+        _isAttacking = false;
+        
+        // Safety: Disable collision with environment (Layer 2) to prevent getting stuck on rocks/walls
+        SetCollisionMaskValue(2, false);
+        
+        // Reset velocity to prevent carrying over jumps/falls
+        Velocity = new Vector2(0, Velocity.Y); 
+        
+        // Hiệu ứng mờ dần khi đi bộ vào hang (Nhanh hơn một chút: 2.0s thay vì 2.5s)
+        var tw = CreateTween();
+        tw.TweenProperty(this, "modulate:a", 0f, 2.0f).SetTrans(Tween.TransitionType.Quad).SetEase(Tween.EaseType.In);
     }
 
     public void SetTutorialExpectedAction(string expectedAction)

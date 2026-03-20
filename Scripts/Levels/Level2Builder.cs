@@ -11,9 +11,9 @@ public partial class Level2Builder : Node2D
     // Constants & Palette
     private const float MAP_WIDTH = 4000f;
     private const float MAP_HEIGHT = 1200f;
-    private static readonly Color DarkCaveColor = new Color("#454555"); // Brighter cave tint
+    private static readonly Color DarkCaveColor = new Color("#606068"); // Lighter ambient for "standard" cave feel
     private static readonly Color StonyGray = new Color(0.35f, 0.35f, 0.38f);
-    private static readonly Color PathColor = new Color(0.15f, 0.12f, 0.1f, 0.6f); // Dark trail
+    private static readonly Color PathColor = new Color("#5a4a3a"); // Darker trail for contrast against light floor
 
     // Resources
     private Shader _caveStoneShader = GD.Load<Shader>("res://Assets/Shaders/cave_stone.gdshader");
@@ -23,43 +23,44 @@ public partial class Level2Builder : Node2D
     private PackedScene _exitScene = GD.Load<PackedScene>("res://Scenes/Objects/LevelExit.tscn");
     private PackedScene _spikeTrapScene = GD.Load<PackedScene>("res://Scenes/Hazards/SpikeHazard.tscn");
 
-    private Random _rng = new Random(42);
-    private Timer _rockTimer;
+    private Random _rng = new Random();
+    private Texture2D _lightTexture;
+    private List<int> _rollingLanes = new List<int>();
+    private float[] _laneY = { 200f, 500f, 850f }; // North, Middle, South center Y
 
     public override void _Ready()
     {
+        _rng = new Random();
+        _lightTexture = CreateRadialGradient(256); // Generate light in-code to avoid import issues
+
         // 1. Setup Sorting & Layers
         YSortEnabled = true;
-        ZIndex = 0; // Builder root is neutral
+        ZIndex = 0;
 
         // 2. Build Environment
         BuildAtmosphere();
         BuildFloorAndPath();
         BuildBoundaries();
-        BuildVegetation();
         BuildObstacles();
         BuildHazards();
         BuildExitPortal();
         
+        // Ensure PlayerLight in the scene also uses the code-generated texture
+        var playerLight = GetParent().GetNodeOrNull<PointLight2D>("PlayerLight");
+        if (playerLight != null) {
+            playerLight.Texture = _lightTexture;
+            playerLight.ShadowEnabled = false; // Disable shadows per user's "always bright" request
+            playerLight.Energy = 1.3f;
+            playerLight.TextureScale = 4.0f;
+        }
+
         // 3. Setup Dynamic Systems
-        SetupFallingRocks();
+        BuildRollingRockTraps();
     }
 
     private void BuildAtmosphere()
     {
-        // Global darkness tint
-        var canvasModulate = new CanvasModulate();
-        canvasModulate.Color = DarkCaveColor;
-        AddChild(canvasModulate);
-
-        // Solid background for editor/empty areas
-        var bg = new ColorRect();
-        bg.Color = new Color(0.01f, 0.01f, 0.02f);
-        bg.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        bg.Size = new Vector2(MAP_WIDTH + 1000, MAP_HEIGHT + 1000);
-        bg.Position = new Vector2(-500, -500);
-        bg.ZIndex = -200; // Far back
-        AddChild(bg);
+        // ColorRect was removed because it clashed with CanvasModulate
     }
 
     private void BuildFloorAndPath()
@@ -77,38 +78,54 @@ public partial class Level2Builder : Node2D
         var mat = new ShaderMaterial();
         mat.Shader = _caveStoneShader;
         floor.Material = mat;
-        floor.SelfModulate = StonyGray;
+        floor.SelfModulate = new Color(0.8f, 0.8f, 0.9f); // Lighter ground for better visibility
         AddChild(floor);
 
-        // Visible Path (Line2D)
-        var path = new Line2D();
-        path.DefaultColor = PathColor;
-        path.Width = 180f;
-        path.ZIndex = -95;
-        path.Points = new Vector2[] {
-            new Vector2(100, 600),
-            new Vector2(800, 500),
-            new Vector2(1600, 800),
-            new Vector2(2400, 400),
-            new Vector2(3200, 700),
-            new Vector2(3850, 500)
+        // Define 3 Main Branches
+        Vector2[][] branches = new Vector2[][] {
+            // Branch 1: North
+            new Vector2[] { new Vector2(100, 500), new Vector2(400, 200), new Vector2(1500, 150), new Vector2(3000, 200), new Vector2(3850, 500) },
+            // Branch 2: Middle
+            new Vector2[] { new Vector2(100, 500), new Vector2(1000, 500), new Vector2(2500, 500), new Vector2(3850, 500) },
+            // Branch 3: South
+            new Vector2[] { new Vector2(100, 500), new Vector2(400, 800), new Vector2(1500, 950), new Vector2(3000, 800), new Vector2(3850, 500) }
         };
-        path.BeginCapMode = Line2D.LineCapMode.Round;
-        path.EndCapMode = Line2D.LineCapMode.Round;
-        path.JointMode = Line2D.LineJointMode.Round;
-        AddChild(path);
+
+        foreach (var points in branches)
+        {
+            var path = new Line2D();
+            path.Points = points;
+            path.DefaultColor = PathColor;
+            path.Width = 140f;
+            path.ZIndex = -95;
+            path.BeginCapMode = Line2D.LineCapMode.Round;
+            path.EndCapMode = Line2D.LineCapMode.Round;
+            path.JointMode = Line2D.LineJointMode.Round;
+            AddChild(path);
+
+            // Path lighting was removed to focus on Player-Centric light only
+        }
+    }
+
+    public void CreateLightAt(Vector2 position)
+    {
+        // Path lighting is now disabled for a darker "Fog of War" atmosphere
     }
 
     private void BuildBoundaries()
     {
-        CreateStaticWall(new Vector2(MAP_WIDTH / 2, -50), new Vector2(MAP_WIDTH, 100)); // Top
-        CreateStaticWall(new Vector2(MAP_WIDTH / 2, MAP_HEIGHT + 50), new Vector2(MAP_WIDTH, 100)); // Bottom
+        // Simple Top/Bottom invisible walls (Layer 2 for CharacterBody2D)
+        CreateStaticWall(new Vector2(MAP_WIDTH / 2, -20), new Vector2(MAP_WIDTH, 100)); // Top
+        CreateStaticWall(new Vector2(MAP_WIDTH / 2, 1040), new Vector2(MAP_WIDTH, 100)); // Bottom (Moved up from 1220)
+        
+        // Horizontal Start/End (Layer 2)
         CreateStaticWall(new Vector2(-50, MAP_HEIGHT / 2), new Vector2(100, MAP_HEIGHT)); // Left
     }
 
     private void CreateStaticWall(Vector2 pos, Vector2 size)
     {
         var wall = new StaticBody2D { Position = pos };
+        wall.CollisionLayer = 2; // Matches Player's Mask 6
         var shape = new CollisionShape2D();
         var rect = new RectangleShape2D { Size = size };
         shape.Shape = rect;
@@ -116,99 +133,58 @@ public partial class Level2Builder : Node2D
         AddChild(wall);
     }
 
-    private void BuildVegetation()
-    {
-        for (int i = 0; i < 120; i++)
-        {
-            Vector2 pos = new Vector2(
-                (float)_rng.NextDouble() * MAP_WIDTH,
-                (float)_rng.NextDouble() * MAP_HEIGHT
-            );
-
-            if (_grassTexture != null)
-            {
-                var grass = new Sprite2D();
-                grass.Texture = _grassTexture;
-                grass.Position = pos;
-                // Grass is scaled ~0.05 to be 1/5 of player (who is ~0.25)
-                float baseScale = 0.05f;
-                grass.Scale = new Vector2(baseScale + (float)_rng.NextDouble() * 0.02f, baseScale + (float)_rng.NextDouble() * 0.02f);
-                grass.SelfModulate = new Color(0.4f, 0.5f, 0.4f, 0.8f); // Muted cave grass
-                grass.ZIndex = -90;
-                AddChild(grass);
-            }
-            else
-            {
-                var poly = new Polygon2D();
-                poly.Polygon = new Vector2[] { new Vector2(0,0), new Vector2(5,-10), new Vector2(10,0) };
-                poly.Color = new Color(0.2f, 0.4f, 0.2f);
-                poly.Position = pos;
-                poly.ZIndex = -90;
-                AddChild(poly);
-            }
-        }
-    }
-
     private void BuildObstacles()
     {
-        for (int i = 0; i < 70; i++)
+        // Solid rock walls (Y=320, Y=680) to split the paths
+        // We use Triple Rows to ensure a thick, impassable barrier
+        for (int i = 0; i < 150; i++) 
         {
-            Vector2 pos = new Vector2(
-                (float)_rng.NextDouble() * (MAP_WIDTH - 400) + 200,
-                (float)_rng.NextDouble() * (MAP_HEIGHT - 200) + 100
-            );
+            float x = i * 28 + (float)_rng.NextDouble() * 10;
+            // Clear spawn area (first 450px) to ensure visibility
+            if (x < 450 || x > MAP_WIDTH - 150) continue; 
+            
+            // Upper wall Divider (y=310 to 330)
+            CreateOccludingWall(new Vector2(x, 310 + (float)_rng.NextDouble() * 20));
+            // Lower wall Divider (y=670 to 690)
+            CreateOccludingWall(new Vector2(x, 670 + (float)_rng.NextDouble() * 20));
 
-            if (pos.DistanceTo(new Vector2(3850, 500)) < 300) continue;
-            CreateOccludingRock(pos);
+            // Bottom Boundary Wall (Y=1000) to match the other lanes width
+            CreateOccludingWall(new Vector2(x, 1000 + (float)_rng.NextDouble() * 20));
+        }
+
+        // Boundary walls (edge of map)
+        for (int i = 0; i < 80; i++)
+        {
+            CreateOccludingWall(new Vector2(i * 50, -20));
+            // The bottom wall is already handled in BuildObstacles() at Y=1000
         }
     }
 
-    private void CreateOccludingRock(Vector2 pos)
+    private void CreateOccludingWall(Vector2 pos)
     {
-        var rockContainer = new Node2D { Position = pos, YSortEnabled = true };
-        
-        // Visual
+        var wallContainer = new Node2D { Position = pos, YSortEnabled = true };
         var sprite = new Sprite2D();
         sprite.Texture = _rockTexture;
-        float s = 1.2f + (float)_rng.NextDouble() * 2.5f;
+        // Scaled down significantly (0.3 to 0.6) to match player size
+        float s = 0.3f + (float)_rng.NextDouble() * 0.3f; 
         sprite.Scale = new Vector2(s, s);
-        sprite.SelfModulate = StonyGray.Darkened((float)_rng.NextDouble() * 0.3f);
+        sprite.SelfModulate = new Color(0.7f, 0.7f, 0.75f); // High visibility light grey
         sprite.Offset = new Vector2(0, -sprite.Texture.GetSize().Y / 4); 
-        rockContainer.AddChild(sprite);
+        wallContainer.AddChild(sprite);
 
-        // Blocker
+        // Solid Body with Collision Shape
         var blocker = new StaticBody2D();
+        blocker.CollisionLayer = 2; // Matches Player's Mask 6 (Binary 110)
+        blocker.CollisionMask = 0; 
+
         var bShape = new CollisionShape2D();
-        var bRect = new RectangleShape2D { Size = new Vector2(60 * s, 30 * s) };
+        // Smaller, more precise collision for the small rocks
+        var bRect = new RectangleShape2D { Size = new Vector2(40 * s, 30 * s) }; 
         bShape.Shape = bRect;
         blocker.AddChild(bShape);
-        rockContainer.AddChild(blocker);
-
-        // Occlusion Trigger
-        var detector = new Area2D();
-        detector.CollisionLayer = 0;
-        detector.CollisionMask = 1; // Standard Player Layer
-        var dShape = new CollisionShape2D();
-        var dRect = new RectangleShape2D { Size = new Vector2(70 * s, 80 * s) };
-        dShape.Shape = dRect;
-        dShape.Position = new Vector2(0, -40 * s);
-        detector.AddChild(dShape);
-        rockContainer.AddChild(detector);
-
-        detector.BodyEntered += (body) => {
-            if (body is Node2D n && (n.IsInGroup("player") || n.Name.ToString().ToLower().Contains("player"))) {
-                var t = CreateTween();
-                t.TweenProperty(sprite, "modulate:a", 0.4f, 0.3f);
-            }
-        };
-        detector.BodyExited += (body) => {
-            if (body is Node2D n && (n.IsInGroup("player") || n.Name.ToString().ToLower().Contains("player"))) {
-                var t = CreateTween();
-                t.TweenProperty(sprite, "modulate:a", 1.0f, 0.3f);
-            }
-        };
-
-        AddChild(rockContainer);
+        wallContainer.AddChild(blocker);
+        
+        AddChild(wallContainer);
     }
 
     private void BuildHazards()
@@ -228,41 +204,86 @@ public partial class Level2Builder : Node2D
         }
     }
 
-    private void SetupFallingRocks()
+    private void BuildRollingRockTraps()
     {
-        _rockTimer = new Timer();
-        _rockTimer.WaitTime = 2.5f;
-        _rockTimer.Autostart = true;
-        _rockTimer.Timeout += SpawnFallingRock;
-        AddChild(_rockTimer);
+        // Pick 2 out of 3 lanes to have rolling rocks
+        var allLanes = new List<int> { 0, 1, 2 };
+        for (int i = 0; i < 2; i++)
+        {
+            int idx = _rng.Next(allLanes.Count);
+            _rollingLanes.Add(allLanes[idx]);
+            allLanes.RemoveAt(idx);
+        }
+
+        // Place triggers along the paths (Layer 2 for CharacterBody2D)
+        foreach (int laneIdx in _rollingLanes)
+        {
+            float laneY = _laneY[laneIdx];
+            for (int x = 600; x < MAP_WIDTH - 600; x += 800)
+            {
+                CreateRollingRockTrigger(new Vector2(x, laneY), laneY);
+            }
+        }
     }
 
-    private void SpawnFallingRock()
+    private void CreateRollingRockTrigger(Vector2 pos, float laneY)
     {
-        var players = GetTree().GetNodesInGroup("player");
-        Vector2 spawnPos;
+        var trigger = new Area2D { Position = pos };
+        trigger.CollisionLayer = 0;
+        trigger.CollisionMask = 1; // Player
 
-        if (players.Count > 0 && players[0] is Node2D p)
-        {
-            spawnPos = new Vector2(p.Position.X + (float)(_rng.NextDouble() * 400 - 200), -50);
-        }
-        else
-        {
-            spawnPos = new Vector2((float)_rng.NextDouble() * MAP_WIDTH, -50);
-        }
+        var shape = new CollisionShape2D();
+        shape.Shape = new RectangleShape2D { Size = new Vector2(100, 150) };
+        trigger.AddChild(shape);
+        AddChild(trigger);
 
-        var rock = new Sprite2D();
-        rock.Texture = _rockTexture;
-        rock.Position = spawnPos;
-        rock.Scale = new Vector2(0.5f, 0.5f);
-        rock.Modulate = new Color(0.8f, 0.7f, 0.7f);
-        rock.ZIndex = 50; // Above everything as it falls
+        trigger.BodyEntered += (body) => {
+            if (body.IsInGroup("player"))
+            {
+                // Spawn rock slightly ahead of the trigger
+                SpawnRollingRockAt(new Vector2(pos.X + 700, laneY), pos.X - 500);
+            }
+        };
+
+        // Note: Repeatable as BodyEntered fires each time the player enters.
+    }
+
+    private void SpawnRollingRockAt(Vector2 spawnPos, float targetX)
+    {
+        var rock = new Node2D { Position = spawnPos };
         AddChild(rock);
 
-        var tween = CreateTween();
-        float targetY = MAP_HEIGHT + 100;
-        tween.TweenProperty(rock, "position:y", targetY, 1.2f).SetTrans(Tween.TransitionType.Expo).SetEase(Tween.EaseType.In);
-        tween.Finished += () => rock.QueueFree();
+        var sprite = new Sprite2D();
+        sprite.Texture = _rockTexture;
+        sprite.Scale = new Vector2(0.6f, 0.6f);
+        sprite.SelfModulate = new Color(0.9f, 0.7f, 0.7f); // Slightly distinct
+        rock.AddChild(sprite);
+
+        // Movement & Rolling Animation
+        var tween = CreateTween().SetParallel(true);
+        float duration = 3.0f;
+
+        tween.TweenProperty(rock, "position:x", targetX, duration);
+        tween.TweenProperty(sprite, "rotation_degrees", -720, duration);
+
+        // High Damage Detection (75 damage = 50% of 150 HP)
+        var area = new Area2D();
+        area.CollisionLayer = 0;
+        area.CollisionMask = 1; // Player
+        var shape = new CollisionShape2D();
+        shape.Shape = new CircleShape2D { Radius = 30f };
+        area.AddChild(shape);
+        rock.AddChild(area);
+
+        area.BodyEntered += (body) => {
+            if (body.HasMethod("TakeDamage"))
+            {
+                body.Call("TakeDamage", 75); // 50% HP damage
+                rock.QueueFree();
+            }
+        };
+
+        tween.Chain().Finished += () => rock.QueueFree();
     }
 
     private void BuildExitPortal()
@@ -279,6 +300,20 @@ public partial class Level2Builder : Node2D
         light.Energy = 2.0f;
         light.Position = new Vector2(3850, 500);
         AddChild(light);
+    }
+
+    public override void _Process(double delta)
+    {
+        // Make PlayerLight follow the player
+        var players = GetTree().GetNodesInGroup("player");
+        if (players.Count > 0 && players[0] is Node2D player)
+        {
+            var pLight = GetParent().GetNodeOrNull<PointLight2D>("PlayerLight");
+            if (pLight != null)
+            {
+                pLight.GlobalPosition = player.GlobalPosition;
+            }
+        }
     }
 
     private Texture2D CreateRadialGradient(int size)

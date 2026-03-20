@@ -1052,7 +1052,7 @@ public partial class TreasureChest : Area2D
                 else if (GameManager.Instance.CurrentLevel == 1)
                 {
                     // Sau khi nhận chìa khóa ở Màn 1, nhân vật tự động đi vào hang và mờ dần
-                    _currentPlayer.Call("AutoWalkToCave", new Vector2(4750, 500));
+                    _currentPlayer.Call("AutoWalkToCave", new Vector2(4680, 500));
                 }
             }
         }

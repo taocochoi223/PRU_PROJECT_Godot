@@ -430,6 +430,15 @@ public partial class IsometricPlayer : CharacterBody2D
 
     private void UpdateAnimation(Vector2 direction)
     {
+        if (_isAutoWalking)
+        {
+            if (_animatedSprite != null && _animatedSprite.SpriteFrames != null && _animatedSprite.SpriteFrames.HasAnimation("run"))
+            {
+                _animatedSprite.Play("run");
+                return;
+            }
+        }
+
         if (_isAttacking)
         {
             if (_animatedSprite?.SpriteFrames != null)

@@ -189,6 +189,7 @@ public partial class IsometricSnake : CharacterBody2D
         PlayAnimSafe("die", "hurt");
         CollisionLayer = 0;
         CollisionMask = 0;
+        GameManager.Instance.OnEnemyDefeated();
 
         var tw = CreateTween();
         tw.TweenProperty(this, "modulate:a", 0f, 1.0f);

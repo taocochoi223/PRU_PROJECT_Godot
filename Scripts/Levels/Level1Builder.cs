@@ -65,6 +65,14 @@ public partial class Level1Builder : Node2D
         BuildTreasureChest();
         BuildWorldBounds();
         
+        // Initialize Enemy Counter
+        int totalEnemies = 7 + 3; // 7 snakes + 3 eagles from the defined arrays
+        GameManager.Instance.ResetEnemyCount(totalEnemies);
+        
+        // Add HUD
+        var hud = new EnemyStatusHUD();
+        AddChild(hud);
+        
         // Cập nhật: Áp dụng làm mờ cho các cây tĩnh được đặt thủ công trong Scene
         ApplyTransparencyToStaticTrees();
     }
