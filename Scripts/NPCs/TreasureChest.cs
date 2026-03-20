@@ -76,10 +76,11 @@ public partial class TreasureChest : Area2D
         BodyEntered += OnBodyEntered;
         _animSprite.Play("idle"); // Lão Hạc => Rương đóng
 
-        // Để rương hiển thị ngay từ đầu nhưng "khóa" (Màn 1)
+        // Rương báu vật thường ẩn đi cho đến khi quét sạch quái
         if (RequireAllEnemiesDefeated)
         {
-            Visible = (GameManager.Instance.CurrentLevel == 1); // Chỉ hiện ở màn 1 để người chơi biết, các màn khác ẩn đi
+            // Level 1 hiện ngay để tutorial, các level khác ẩn đi
+            Visible = (GameManager.Instance.CurrentLevel == 1);
         }
     }
 
@@ -184,6 +185,7 @@ public partial class TreasureChest : Area2D
             }
             else
             {
+                // Chỉ hiện thông báo nếu rương đã hiện (nghĩa là Level 1)
                 if (Visible)
                 {
                     _messageLabel.Text = $"Còn {aliveCount} quái vật chưa tiêu diệt!";
@@ -195,8 +197,7 @@ public partial class TreasureChest : Area2D
         {
             _messageLabel.Visible = false;
 
-            // Bỏ cơ chế tự hiện rương muộn vì bây giờ ta cho hiện ngay từ đầu
-/*
+            // Tự hiện rương khi diệt sạch quái (Áp dụng cho mọi màn trừ Màn 1 đã hiện sẵn)
             if (RequireAllEnemiesDefeated && !Visible)
             {
                 var enemies = GetTree().GetNodesInGroup("enemies");
@@ -213,9 +214,9 @@ public partial class TreasureChest : Area2D
                     Modulate = new Color(1, 1, 1, 0);
                     var tw = CreateTween();
                     tw.TweenProperty(this, "modulate:a", 1.0f, 1.0f);
+                    GD.Print("[TreasureChest] All enemies defeated! Loot revealed.");
                 }
             }
-*/
         }
     }
 
@@ -235,6 +236,12 @@ public partial class TreasureChest : Area2D
         if (_isOpened) return;
         _isOpened = true;
         _messageLabel.Visible = false;
+        
+        // Nhận xong thì rương mờ dần rồi ẩn đi cho sạch map
+        var fadeTw = CreateTween();
+        fadeTw.TweenInterval(2.0f);
+        fadeTw.TweenProperty(this, "modulate:a", 0.0f, 1.0f);
+        fadeTw.TweenCallback(Callable.From(() => Visible = false));
 
         // Hiệu ứng rung lắc rương dữ dội trước khi mở
         var shakeTw = CreateTween();
@@ -370,10 +377,16 @@ public partial class TreasureChest : Area2D
 
                     // Hiện popup mô tả cho kỹ năng L
                     PlayDialogueAndShowPopups(player, 2);
+                    
+                    // Kích hoạt cổng thoát Map 2
+                    var exits = GetTree().GetNodesInGroup("LevelExit");
+                    foreach (var exit in exits)
+                    {
+                        if (exit.HasMethod("Activate")) exit.Call("Activate");
+                    }
 
                     if (player.HasMethod("RefreshSkillUI")) player.Call("RefreshSkillUI");
-
-                    GD.Print("Màn 2: Nhận kỹ năng L và hiện popup mô tả.");
+                    GD.Print("Màn 2: Nhận kỹ năng L và đã mở cửa hang Map 2.");
                 }
                 else if (GameManager.Instance.CurrentLevel == 3)
                 {
@@ -1045,7 +1058,8 @@ public partial class TreasureChest : Area2D
                 // Sau khi xem xong Skill L ở Màn 2, mở cổng
                 if (GameManager.Instance.CurrentLevel == 2)
                 {
-                    CreateEpicPortal(_currentPlayer);
+                    // Map 2: Thạch Sanh tự đi vào cửa hang vừa được mở (x~3850)
+                    _currentPlayer.Call("AutoWalkToCave", new Vector2(4000, 500));
                 }
                 // Ở Màn 1, nếu muốn mở cổng ngay sau popup thì thêm ở đây
                 // Nhưng hiện tại Màn 1 yêu cầu 3 chìa nên có thể cổng đã có sẵn hoặc chờ logic khác

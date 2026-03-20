@@ -63,7 +63,13 @@ public partial class Level2Builder : Node2D
 
     private void BuildAtmosphere()
     {
-        // ColorRect was removed because it clashed with CanvasModulate
+        // Thêm nền màu tối đồng nhất để không bị lộ các mảng màu khác khi Camera di chuyển
+        var bg = new ColorRect();
+        bg.Size = new Vector2(MAP_WIDTH + 2000, MAP_HEIGHT + 2000);
+        bg.Position = new Vector2(-1000, -1000);
+        bg.Color = new Color(0.15f, 0.15f, 0.18f); // Màu đá trầm
+        bg.ZIndex = -200; // Dưới cả sàn
+        AddChild(bg);
     }
 
     private void BuildFloorAndPath()
@@ -123,6 +129,7 @@ public partial class Level2Builder : Node2D
         
         // Horizontal Start/End (Layer 2)
         CreateStaticWall(new Vector2(-50, MAP_HEIGHT / 2), new Vector2(100, MAP_HEIGHT)); // Left
+        CreateStaticWall(new Vector2(MAP_WIDTH + 50, MAP_HEIGHT / 2), new Vector2(100, MAP_HEIGHT)); // Right
     }
 
     private void CreateStaticWall(Vector2 pos, Vector2 size)
@@ -143,8 +150,8 @@ public partial class Level2Builder : Node2D
         for (int i = 0; i < 150; i++) 
         {
             float x = i * 28 + (float)_rng.NextDouble() * 10;
-            // Clear spawn area (first 450px) to ensure visibility
-            if (x < 450 || x > MAP_WIDTH - 150) continue; 
+            // Dừng tạo đá ở cửa hang (3850) để không bị "lòi" ra ngoài
+            if (x < 450 || x > 3850) continue; 
             
             // Upper wall Divider (y=310 to 330)
             CreateOccludingWall(new Vector2(x, 310 + (float)_rng.NextDouble() * 20));
@@ -155,11 +162,11 @@ public partial class Level2Builder : Node2D
             CreateOccludingWall(new Vector2(x, 1000 + (float)_rng.NextDouble() * 20));
         }
 
-        // Boundary walls (edge of map)
         for (int i = 0; i < 80; i++)
         {
-            CreateOccludingWall(new Vector2(i * 50, -20));
-            // The bottom wall is already handled in BuildObstacles() at Y=1000
+            float x = i * 50;
+            if (x > 3850) continue; // Dừng tạo đá ở cửa hang
+            CreateOccludingWall(new Vector2(x, -20));
         }
     }
 
@@ -413,7 +420,19 @@ public partial class Level2Builder : Node2D
             else
                 AddChild(chest);
 
-            GD.Print($"[Level2Builder] Spawned fixed reward chest at {chest.GlobalPosition}");
+            // ÉP BUỘC rương phải ẩn đi ngay lập tức sau khi thêm vào cây (Để tránh lỗi đồng bộ _Ready)
+            chest.Visible = false;
+
+            GD.Print($"[Level2Builder] Spawned fixed reward chest at {chest.GlobalPosition} (Forced Invisible)");
+        }
+
+        // Chặn hướng di chuyển ở cuối map (Phễu dẫn vào Exit) - Chừa khoảng trống ở giữa (Y=500)
+        for (int i = 0; i < 6; i++)
+        {
+            // Upper funnel wall (Kết thúc ở Y=400)
+            CreateOccludingWall(new Vector2(3850, 300 + i * 20));
+            // Lower funnel wall (Bắt đầu từ Y=600)
+            CreateOccludingWall(new Vector2(3850, 700 - i * 20));
         }
 
         var light = new PointLight2D();
