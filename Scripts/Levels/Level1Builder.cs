@@ -61,6 +61,7 @@ public partial class Level1Builder : Node2D
         BuildCheckpoints();
         BuildForestTrees();
         BuildCaveEntrance();
+        BuildMudPits();
         
         // Cập nhật: Áp dụng làm mờ cho các cây tĩnh được đặt thủ công trong Scene
         ApplyTransparencyToStaticTrees();
@@ -948,7 +949,68 @@ public partial class Level1Builder : Node2D
     }
 
     // ═══════════════════════════════════════════════════════════
-    //  HELPER — Tạo polygon hình oval
+    //  HỐ BÙN — Chướng ngại vật làm chậm
+    // ═══════════════════════════════════════════════════════════
+    private void BuildMudPits()
+    {
+        // Thêm hố bùn rải rác trên bản đồ (thường xuất hiện gần hồ nước hoặc đường mòn)
+        CreateMudPit(new Vector2(1600, 520), 80, 45); // Chặn hướng đi Zone 2
+        CreateMudPit(new Vector2(2800, 350), 65, 35); // Gần suối Zone 3
+        CreateMudPit(new Vector2(600, 250), 55, 30);  // Zone 1
+        CreateMudPit(new Vector2(3400, 850), 75, 40); // Zone 4
+    }
+
+    private void CreateMudPit(Vector2 pos, float rx, float ry)
+    {
+        // 1. Phân giác màu bùn (Nước bùn đậm)
+        var mudVisual = new Polygon2D();
+        mudVisual.ZIndex = -92; // Dưới cỏ nhưng trên đất
+        mudVisual.Position = pos;
+        mudVisual.Color = new Color(0.24f, 0.18f, 0.12f, 0.85f);
+        // Tạo đa giác méo mó tự nhiên
+        mudVisual.Polygon = MakeIrregularEllipse(rx, ry, 18, 0.25f);
+        AddChild(mudVisual);
+
+        // 2. Viền bùn nhạt hơn (Vũng lầy)
+        var rim = new Polygon2D();
+        rim.ZIndex = -93;
+        rim.Position = pos;
+        rim.Color = new Color(0.35f, 0.28f, 0.20f, 0.6f);
+        rim.Polygon = MakeIrregularEllipse(rx + 15, ry + 10, 18, 0.2f);
+        AddChild(rim);
+
+        // Hiệu ứng bọt khí bùn thỉnh thoảng hiện lên
+        for (int i = 0; i < 3; i++)
+        {
+            var bubble = new ColorRect();
+            bubble.Size = new Vector2(4, 4);
+            bubble.Color = new Color(0.4f, 0.35f, 0.3f, 0.7f);
+            bubble.Position = new Vector2(
+                (float)_rng.NextDouble() * rx - rx/2,
+                (float)_rng.NextDouble() * ry - ry/2
+            );
+            mudVisual.AddChild(bubble);
+            
+            var tw = CreateTween();
+            tw.SetLoops();
+            tw.TweenProperty(bubble, "scale", new Vector2(2, 2), 2.0f).SetDelay((float)_rng.NextDouble() * 3);
+            tw.TweenProperty(bubble, "modulate:a", 0f, 0.5f);
+            tw.TweenCallback(Callable.From(() => bubble.Scale = Vector2.One));
+        }
+
+        // 3. Logic làm chậm (IsometricMudPit)
+        var mudLogic = new IsometricMudPit();
+        mudLogic.Position = pos;
+        
+        var collision = new CollisionPolygon2D();
+        collision.Polygon = mudVisual.Polygon;
+        mudLogic.AddChild(collision);
+        
+        AddChild(mudLogic);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  HELPER — Tạo polygon hình oval rách rưới tự nhiên
     // ═══════════════════════════════════════════════════════════
     private Vector2[] MakeEllipsePolygon(float rx, float ry, int segments)
     {
@@ -957,6 +1019,19 @@ public partial class Level1Builder : Node2D
         {
             float angle = (float)i / segments * Mathf.Pi * 2;
             points[i] = new Vector2(Mathf.Cos(angle) * rx, Mathf.Sin(angle) * ry);
+        }
+        return points;
+    }
+
+    private Vector2[] MakeIrregularEllipse(float rx, float ry, int segments, float jitter = 0.15f)
+    {
+        var points = new Vector2[segments];
+        for (int i = 0; i < segments; i++)
+        {
+            float angle = (float)i / segments * Mathf.Pi * 2;
+            // Áp dụng jitter để ngẫu nhiên biến dạng các đỉnh, tạo vẻ tự nhiên
+            float r_jitter = 1.0f + ((float)_rng.NextDouble() - 0.5f) * jitter;
+            points[i] = new Vector2(Mathf.Cos(angle) * rx * r_jitter, Mathf.Sin(angle) * ry * r_jitter);
         }
         return points;
     }
