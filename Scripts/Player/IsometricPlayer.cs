@@ -53,8 +53,6 @@ public partial class IsometricPlayer : CharacterBody2D
     private TextureRect[] _skillIcons = new TextureRect[3];
     private TextureRect[] _cooldownOverlays = new TextureRect[3];
     private Label[] _cooldownLabels = new Label[3];
-    private static Rect2I _unifiedSkillBounds = new Rect2I();
-    private static bool _skillBoundsCalculated = false;
     private bool _isSpinning = false;
     private static Texture2D _cachedAxeTexture = null;
     private static Texture2D _cachedPortraitTexture = null;
@@ -240,7 +238,7 @@ public partial class IsometricPlayer : CharacterBody2D
 
     private void DealDamageToNearbyEnemies()
     {
-        float attackRange = 50f;
+        float attackRange = 120f; // Tăng lên 120 để đánh Boss to dễ hơn
         var enemies = GetTree().GetNodesInGroup("enemies");
 
         foreach (var enemy in enemies)

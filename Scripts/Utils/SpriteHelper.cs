@@ -668,12 +668,11 @@ public static class SpriteHelper
                         continue;
                     }
 
-                    // Nếu là pixel viền xanh (Antialiasing) -> Làm trong suốt và khử sắc xanh
+                    // Nếu là pixel viền xanh (Antialiasing) -> Làm trong suốt nhẹ nhưng KHÔNG khử sắc xanh của Boss
                     if (p.G > 0.2f && greenDiff > 0.05f)
                     {
                         Color cleaned = p;
-                        cleaned.A = Math.Max(0, p.A - (greenDiff * 3.0f));
-                        cleaned.G = Math.Max(cleaned.R, cleaned.B); // Khử sắc xanh neon
+                        cleaned.A = Math.Max(0, p.A - (greenDiff * 2.0f));
                         img.SetPixel(x, y, cleaned);
                     }
                 }

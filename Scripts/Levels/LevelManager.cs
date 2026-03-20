@@ -216,6 +216,12 @@ public partial class LevelManager : Node2D
             await dm.PlayDialogue(lines, pauseGame: false);
         }
 
+        if (LevelNumber == 3)
+        {
+            // Bắt đầu màn 3 bằng Boss nhảy xuống ngay lập tức
+            CallDeferred(nameof(TriggerLevel3BossCinematic));
+        }
+
         if (LevelNumber == 1 && GameManager.Instance != null && !GameManager.Instance.HasCompletedOnboardingTutorial)
         {
             if (_player.GetType().Name == "Player")
@@ -248,7 +254,8 @@ public partial class LevelManager : Node2D
         {
             _boss.Visible = false;
             _boss.ProcessMode = ProcessModeEnum.Disabled;
-            _boss.GlobalPosition = new Vector2(5000, 520);
+            // Đưa boss lên trời chờ sẵn
+            _boss.GlobalPosition = new Vector2(500, -500); 
         }
     }
 
@@ -312,6 +319,7 @@ public partial class LevelManager : Node2D
 
     private void ProcessLevel3Logic()
     {
+        // Boss đã xuất hiện ngay từ đầu Màn 3, logic tiếp cận Princess không cần trigger boss nữa
         if (!_level3EnemiesCleared)
         {
             var enemies = GetTree().GetNodesInGroup("enemies");
@@ -330,27 +338,7 @@ public partial class LevelManager : Node2D
                 _level3EnemiesCleared = true;
                 if (_princess != null) _princess.Visible = true;
                 if (_cage != null) _cage.Visible = true;
-            }
-        }
-        else if (!_level3BossSpawned)
-        {
-            if (_player != null && _princess != null)
-            {
-                float dist = _player.GlobalPosition.DistanceTo(_princess.GlobalPosition);
-                if (dist < 400f)
-                {
-                    if (_boss != null && !_level3BossSpawned)
-                    {
-                        _level3BossSpawned = true;
-                        _bossFightStarted = true;
-                        _boss.GlobalPosition = new Vector2(3300, 520);
-                        _boss.Visible = true;
-                        _boss.ProcessMode = ProcessModeEnum.Inherit;
-                        LockBossArena();
-                        CreatePrincessBarrier();
-                        CallDeferred(nameof(PlayBossIntroDialogue));
-                    }
-                }
+                // Khi diệt sạch quái lặt vặt thì Princess kêu cứu hoặc mở lồng?
             }
         }
 
@@ -496,5 +484,80 @@ public partial class LevelManager : Node2D
             else if (node is IsometricSnake snake && !snake.IsDead) count++;
         }
         GameManager.Instance.ResetEnemyCount(count);
+    }
+
+    private async void TriggerLevel3BossCinematic()
+    {
+        if (_boss == null || !IsInstanceValid(_boss) || _player == null) return;
+
+        _level3BossSpawned = true;
+        _bossFightStarted = true;
+
+        // 1. Vị trí đáp xuống trước mặt người chơi
+        Vector2 spawnPos = _player.GlobalPosition + new Vector2(250, 0); 
+        // Đảm bảo ở vị trí mặt đất hợp lý (Level 3 ground surface is at ~590)
+        spawnPos.Y = 590; 
+
+        _boss.GlobalPosition = spawnPos + new Vector2(0, -800);
+        _boss.Visible = true;
+
+        // 2. Nhảy xuống (Tween)
+        var tween = CreateTween();
+        tween.TweenProperty(_boss, "global_position", spawnPos, 0.8f)
+             .SetTrans(Tween.TransitionType.Expo)
+             .SetEase(Tween.EaseType.In);
+        
+        await ToSignal(tween, "finished");
+
+        // 3. Landed: Shake + FX + Sound
+        if (_boss is ChanTinh chantinh) chantinh.ResetBoss(spawnPos);
+        
+        var cam = GetTree().GetFirstNodeInGroup("MainCamera") as FollowCamera;
+        if (cam != null) cam.Shake(1.5f, 25f);
+        
+        CreateLandVFX(spawnPos);
+
+        var sfxPlayer = new AudioStreamPlayer();
+        sfxPlayer.Stream = SFX.GetEarthImpactSound();
+        sfxPlayer.VolumeDb = 5f;
+        AddChild(sfxPlayer);
+        sfxPlayer.Play();
+        sfxPlayer.Finished += () => sfxPlayer.QueueFree();
+
+        // 4. Lời thoại
+        var dm = new DialogueManager();
+        AddChild(dm);
+        var lines = new List<DialogueManager.DialogueLine>
+        {
+            new DialogueManager.DialogueLine("Chằn Tinh", "HAHAHA! Ngươi tưởng cứu được công chúa sao? Ta đã đợi ngươi ở đây từ lâu rồi!", null, "res://Assets/Audio/Voices/chantinh_intro.mp3")
+        };
+        await dm.PlayDialogue(lines);
+
+        // 5. Bắt đầu chiến đấu
+        _boss.ProcessMode = ProcessModeEnum.Inherit;
+        GD.Print("[LevelManager] Level 3 Boss Battle Start!");
+    }
+
+    private void CreateLandVFX(Vector2 pos)
+    {
+        var particles = new CpuParticles2D();
+        particles.GlobalPosition = pos;
+        particles.Amount = 60;
+        particles.Lifetime = 1.0f;
+        particles.OneShot = true;
+        particles.Explosiveness = 1.0f;
+        particles.Direction = new Vector2(0, -1);
+        particles.Spread = 180f;
+        particles.Gravity = new Vector2(0, 1000);
+        particles.InitialVelocityMin = 250f;
+        particles.InitialVelocityMax = 500f;
+        particles.ScaleAmountMin = 4f;
+        particles.ScaleAmountMax = 10f;
+        particles.Color = new Color(0.45f, 0.35f, 0.25f);
+        
+        AddChild(particles);
+        particles.Emitting = true;
+        var timer = GetTree().CreateTimer(2.0f);
+        timer.Timeout += () => { if (IsInstanceValid(particles)) particles.QueueFree(); };
     }
 }

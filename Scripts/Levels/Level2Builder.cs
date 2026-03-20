@@ -24,6 +24,7 @@ public partial class Level2Builder : Node2D
     private PackedScene _spikeTrapScene = GD.Load<PackedScene>("res://Scenes/Hazards/SpikeHazard.tscn");
     private PackedScene _snakeScene = GD.Load<PackedScene>("res://Scenes/Enemies/IsometricSnake.tscn");
     private PackedScene _eagleScene = GD.Load<PackedScene>("res://Scenes/Enemies/Eagle.tscn");
+    private PackedScene _bossScene = GD.Load<PackedScene>("res://Scenes/Enemies/ChanTinh.tscn");
 
     private Random _rng = new Random();
     private Texture2D _lightTexture;
@@ -60,6 +61,7 @@ public partial class Level2Builder : Node2D
         // 3. Setup Dynamic Systems
         BuildRollingRockTraps();
     }
+
 
     private void BuildAtmosphere()
     {
@@ -269,38 +271,24 @@ public partial class Level2Builder : Node2D
     {
         if (_snakeScene == null || _eagleScene == null) return;
 
-        Vector2[][] branches = GetBranches();
-        
-        // Spawn snakes along the paths
-        foreach (var points in branches)
+        // Sinh lính canh đa dạng cho Màn 2
+        for (int i = 0; i < 12; i++)
         {
-            for (int i = 1; i < points.Length - 1; i++)
-            {
-                // Spawn a snake at every major path point
-                var snake = _snakeScene.Instantiate<CharacterBody2D>();
-                snake.Position = points[i] + new Vector2((float)_rng.NextDouble() * 40 - 20, (float)_rng.NextDouble() * 40 - 20);
-                AddChild(snake);
-                
-                // Occasionally spawn an eagle nearby
-                if (_rng.NextDouble() > 0.6)
-                {
-                    var eagle = _eagleScene.Instantiate<Node2D>();
-                    eagle.Position = points[i] + new Vector2(0, -100); // Higher up air enemy
-                    AddChild(eagle);
-                }
-            }
+            Vector2 pos = new Vector2(_rng.Next(400, (int)MAP_WIDTH - 400), _rng.Next(150, (int)MAP_HEIGHT - 150));
+            var snake = _snakeScene.Instantiate<CharacterBody2D>();
+            snake.Position = pos;
+            AddChild(snake);
         }
 
-        // Some extra eagles in open areas
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 8; i++)
         {
-            var eagle = _eagleScene.Instantiate<Node2D>();
-            eagle.Position = new Vector2(
-                (float)_rng.NextDouble() * (MAP_WIDTH - 1000) + 500,
-                (float)_rng.NextDouble() * (MAP_HEIGHT - 400) + 200
-            );
+            Vector2 pos = new Vector2(_rng.Next(600, (int)MAP_WIDTH - 600), _rng.Next(100, (int)MAP_HEIGHT - 300));
+            var eagle = _eagleScene.Instantiate<CharacterBody2D>();
+            eagle.Position = pos;
             AddChild(eagle);
         }
+        
+        GD.Print($"[Level2Builder] Restored all guarding enemies ({12} snakes, {8} eagles)");
     }
 
     private Vector2[][] GetBranches()
