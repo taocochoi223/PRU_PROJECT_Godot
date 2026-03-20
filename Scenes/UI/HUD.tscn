@@ -12,9 +12,9 @@ anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -220.0
-offset_top = 60.0
+offset_top = 170.0
 offset_right = -20.0
-offset_bottom = 140.0
+offset_bottom = 250.0
 grow_horizontal = 0
 script = ExtResource("2")
 
@@ -55,7 +55,7 @@ offset_left = 0.0
 offset_top = 0.0
 offset_right = 6.0
 offset_bottom = 6.0
-color = Color(1, 0, 0, 1)
+color = Color(0, 1, 0, 1)
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=368668356]
 anchors_preset = 10

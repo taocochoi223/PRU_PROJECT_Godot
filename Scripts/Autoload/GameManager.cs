@@ -299,7 +299,7 @@ public partial class GameManager : Node
         PlayerHealth = MaxPlayerHealth;
         IsGameOver = false;
         PlayerLives = 3;
-        UnlockedSkillsCount = 0;
+        UnlockedSkillsCount = 2; // Màn 1 cho xài sẵn kỹ năng J và K
         HasBossKey = false;
         TotalKeys = 0;
         HasCompletedOnboardingTutorial = false;

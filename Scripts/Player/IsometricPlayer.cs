@@ -41,7 +41,28 @@ public partial class IsometricPlayer : CharacterBody2D
     private bool _comboActive = false;
     private string _currentAttackAnimation = "attack";
 
+    // Skills
+    private float _skill1Timer = 0f;
+    private float _skill2Timer = 0f;
+    private float _skill3Timer = 0f;
+    private const float Skill1Cooldown = 0f;  
+    private const float Skill2Cooldown = 0f; 
+    private const float Skill3Cooldown = 0f; 
+
+    private CanvasLayer _skillPanelLayer;
+    private TextureRect[] _skillIcons = new TextureRect[3];
+    private TextureRect[] _cooldownOverlays = new TextureRect[3];
+    private Label[] _cooldownLabels = new Label[3];
+    private static Rect2I _unifiedSkillBounds = new Rect2I();
+    private static bool _skillBoundsCalculated = false;
+    private bool _isSpinning = false;
+    private static Texture2D _cachedAxeTexture = null;
+    private static Texture2D _cachedPortraitTexture = null;
+
     private Node2D _lastFadedObject = null;
+    private bool _isAutoWalking = false;
+    private Vector2 _autoWalkTarget;
+    private bool _isEnteringCave = false;
 
     [Signal] public delegate void HealthChangedEventHandler(int newHealth, int maxHealth);
     [Signal] public delegate void PlayerDiedEventHandler();
@@ -100,6 +121,11 @@ public partial class IsometricPlayer : CharacterBody2D
         AddChild(_invulnTimer);
 
         EmitSignal(SignalName.HealthChanged, _health, MaxHealth);
+        
+        // TIỀN XỬ LÝ TEXTURE (Tránh bị đơ/lag khi dùng chiêu lần đầu)
+        PrepareAxeTexture();
+        string[] iconPaths = { "res://Assets/Sprites/Player/Skill_1.png", "res://Assets/Sprites/Player/Skill_2.png", "res://Assets/Sprites/Player/Skill_3.png" };
+        for (int i = 0; i < 3; i++) GetCleanSkillIcon(iconPaths, i);
     }
 
     private void SyncHealthToGameManager()
@@ -115,10 +141,50 @@ public partial class IsometricPlayer : CharacterBody2D
 
         float dt = (float)delta;
 
-        // 1. Horizontal Movement (8 hướng)
-        Vector2 inputDir = Input.GetVector("move_left", "move_right", "move_up", "move_down");
+        // 1. Skill UI Initialization
+        if (GameManager.Instance.UnlockedSkillsCount > 0 && _skillPanelLayer == null)
+        {
+            SetupSkillUI();
+        }
 
-        if (inputDir != Vector2.Zero && !_isAttacking)
+        // 2. Physics & Movement
+        HandleGravity(dt);
+
+        if (_isAutoWalking)
+        {
+            HandleAutoWalkMovement(dt);
+            UpdateAnimation(Velocity.Normalized());
+            UpdateVisualOffset();
+            MoveAndSlide();
+            return;
+        }
+
+        HandleMovement(dt);
+        HandleJump(dt);
+        MoveAndSlide();
+
+        // 3. Attack & Skills 
+        HandleAttack();
+        HandleSkills(dt);
+
+        // 4. Update Visuals
+        Vector2 inputDir = Input.GetVector("move_left", "move_right", "move_up", "move_down");
+        UpdateAnimation(inputDir);
+        UpdateVisualOffset();
+        UpdateSkillUICooldowns();
+    }
+
+    private void HandleGravity(float dt)
+    {
+        // Trọng lực giả cho trục Z được xử lý trong HandleJump
+    }
+
+    private void HandleMovement(float dt)
+    {
+        if (_isAttacking || _isSpinning) return;
+
+        Vector2 inputDir = Input.GetVector("move_left", "move_right", "move_up", "move_down");
+        if (inputDir != Vector2.Zero)
         {
             Velocity = Velocity.MoveToward(inputDir * Speed, Acceleration * dt);
             _facingDirection = inputDir;
@@ -127,29 +193,6 @@ public partial class IsometricPlayer : CharacterBody2D
         {
             Velocity = Velocity.MoveToward(Vector2.Zero, Friction * dt);
         }
-
-        MoveAndSlide();
-
-        // 2. Fake Z-Axis (Jump)
-        HandleJump(dt);
-
-        // 3. Attack
-        HandleAttack();
-
-        if (_comboActive)
-        {
-            _comboTimer += dt;
-            if (_comboTimer >= ComboResetTime)
-            {
-                _comboActive = false;
-                _comboIndex = 0;
-                _comboTimer = 0f;
-            }
-        }
-
-        // 4. Update Visuals
-        UpdateAnimation(inputDir);
-        UpdateVisualOffset();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -222,54 +265,8 @@ public partial class IsometricPlayer : CharacterBody2D
 
     private void CreateAttackVFX()
     {
-        var slashNode = new Node2D();
-        float faceX = _facingDirection.X;
-        float faceY = _facingDirection.Y;
-
-        // Hướng tấn công dựa trên facingDirection
-        float angle = Mathf.Atan2(faceY, faceX);
-        slashNode.Position = new Vector2(faceX * 30, faceY * 30 - _z);
-        slashNode.Rotation = angle;
-        AddChild(slashNode);
-
-        // Tạo 1 vệt chém duy nhất (không dùng 3 đường móng vuốt)
-        var slash = new ColorRect();
-        slash.Size = new Vector2(10, 52);
-        slash.PivotOffset = new Vector2(5f, 26f);
-        slash.Position = new Vector2(0, -26);
-        slash.Rotation = -0.15f;
-        slash.Color = new Color(1f, 0.9f, 0.3f, 0.95f);
-        slashNode.AddChild(slash);
-
-        var tw = CreateTween();
-        tw.SetParallel(true);
-        slash.Scale = new Vector2(0.15f, 0.15f);
-        tw.TweenProperty(slash, "scale", new Vector2(1.35f, 1.5f), 0.12f)
-            .SetTrans(Tween.TransitionType.Back).SetEase(Tween.EaseType.Out);
-        tw.TweenProperty(slash, "rotation", 0.2f, 0.16f)
-            .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.Out);
-        tw.TweenProperty(slash, "modulate:a", 0f, 0.22f).SetDelay(0.08f);
-
-        // Spark particles
-        var sparks = new CpuParticles2D();
-        sparks.Emitting = true;
-        sparks.OneShot = true;
-        sparks.Amount = 12;
-        sparks.Lifetime = 0.3f;
-        sparks.Explosiveness = 0.95f;
-        sparks.Direction = new Vector2(faceX, faceY);
-        sparks.Spread = 35f;
-        sparks.Gravity = Vector2.Zero;
-        sparks.InitialVelocityMin = 100f;
-        sparks.InitialVelocityMax = 200f;
-        sparks.ScaleAmountMin = 2f;
-        sparks.ScaleAmountMax = 4f;
-        sparks.Color = new Color(1f, 0.8f, 0.2f, 0.8f);
-        slashNode.AddChild(sparks);
-
-        // Cleanup
-        var cleanup = GetTree().CreateTimer(0.5f);
-        cleanup.Timeout += () => { if (IsInstanceValid(slashNode)) slashNode.QueueFree(); };
+        // Hiệu ứng đánh thường của nhân vật đã được loại bỏ theo yêu cầu.
+        // Bạn có thể thêm lại logic ở đây nếu muốn.
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -465,8 +462,292 @@ public partial class IsometricPlayer : CharacterBody2D
     }
 
     // Compatibility hook used by reward systems that also support the side-scroller Player class.
+    // ═══════════════════════════════════════════════════════════
+    //  SKILLS — Các chiêu thức võ công
+    // ═══════════════════════════════════════════════════════════
+    private void HandleSkills(float dt)
+    {
+        if (_skillPanelLayer == null) SetupSkillUI();
+
+        if (_skill1Timer > 0) _skill1Timer -= dt;
+        if (_skill2Timer > 0) _skill2Timer -= dt;
+        if (_skill3Timer > 0) _skill3Timer -= dt;
+
+        UpdateSkillUICooldowns();
+
+        if (_isDead || _isFalling || _isAttacking) return;
+
+        bool press1 = Input.IsActionJustPressed("skill1") || Input.IsKeyPressed(Key.Key1);
+        bool press2 = Input.IsActionJustPressed("skill2") || Input.IsKeyPressed(Key.Key2);
+        bool press3 = Input.IsActionJustPressed("skill3") || Input.IsKeyPressed(Key.Key3);
+        int unlocked = GameManager.Instance.UnlockedSkillsCount;
+
+        if (press1 && _skill1Timer <= 0 && unlocked >= 1) ExecuteAxeThrow();
+        else if (press2 && _skill2Timer <= 0 && unlocked >= 2) ExecuteWhirlwind();
+        else if (press3 && _skill3Timer <= 0 && unlocked >= 3) ExecuteEarthBreaker();
+    }
+
+    private void SetupSkillUI()
+    {
+        _skillPanelLayer = new CanvasLayer();
+        _skillPanelLayer.Layer = 5;
+        AddChild(_skillPanelLayer);
+
+        var margin = new MarginContainer();
+        margin.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+        margin.AddThemeConstantOverride("margin_right", 100);
+        margin.AddThemeConstantOverride("margin_top", -40);
+        _skillPanelLayer.AddChild(margin);
+
+        var hbox = new HBoxContainer();
+        hbox.Alignment = BoxContainer.AlignmentMode.End;
+        hbox.AddThemeConstantOverride("separation", 15);
+        margin.AddChild(hbox);
+
+        string[] paths = { "res://Assets/Sprites/Player/Skill_1.png", "res://Assets/Sprites/Player/Skill_2.png", "res://Assets/Sprites/Player/Skill_3.png" };
+        for (int i = 0; i < 3; i++)
+        {
+            var btnHolder = new CenterContainer();
+            btnHolder.CustomMinimumSize = new Vector2(160, 160);
+            hbox.AddChild(btnHolder);
+
+            // Xử lý tách nền xanh rác cho từng Icon
+            var processedTex = GetCleanSkillIcon(paths, i);
+
+            _skillIcons[i] = new TextureRect { Texture = processedTex, CustomMinimumSize = new Vector2(160, 160), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered };
+            btnHolder.AddChild(_skillIcons[i]);
+
+            _cooldownOverlays[i] = new TextureRect { Texture = processedTex, CustomMinimumSize = new Vector2(160, 160), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, Modulate = new Color(0, 0, 0, 0.75f), Visible = false };
+            btnHolder.AddChild(_cooldownOverlays[i]);
+
+            _cooldownLabels[i] = new Label { CustomMinimumSize = new Vector2(160, 160), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Visible = false };
+            _cooldownLabels[i].AddThemeFontSizeOverride("font_size", 56);
+            btnHolder.AddChild(_cooldownLabels[i]);
+
+            btnHolder.Visible = (i < GameManager.Instance.UnlockedSkillsCount);
+        }
+    }
+
     public void RefreshSkillUI()
     {
-        // IsometricPlayer currently has no dedicated skill panel UI.
+        if (_skillPanelLayer == null) return;
+        for (int i = 0; i < 3; i++)
+        {
+            if (_skillIcons[i] != null && _skillIcons[i].GetParent() is Control holder)
+                holder.Visible = (i < GameManager.Instance.UnlockedSkillsCount);
+        }
+    }
+
+    private void UpdateSkillUICooldowns()
+    {
+        if (_skillPanelLayer == null) return;
+        float[] timers = { _skill1Timer, _skill2Timer, _skill3Timer };
+        for (int i = 0; i < 3; i++)
+        {
+            if (timers[i] > 0)
+            {
+                _cooldownOverlays[i].Visible = true;
+                _cooldownLabels[i].Visible = true;
+                _cooldownLabels[i].Text = Mathf.CeilToInt(timers[i]).ToString();
+            }
+            else
+            {
+                _cooldownOverlays[i].Visible = false;
+                _cooldownLabels[i].Visible = false;
+            }
+        }
+    }
+
+    private async void ExecuteAxeThrow()
+    {
+        _skill1Timer = Skill1Cooldown;
+        _isAttacking = true;
+        
+        PrepareAxeTexture();
+        var axe = new AxeProjectile();
+        axe.Texture = _cachedAxeTexture;
+        axe.GlobalPosition = GlobalPosition + new Vector2(_facingDirection.X * 40, _facingDirection.Y * 40 - _z - 20);
+        axe.Direction = _facingDirection.Normalized();
+        axe.Damage = AttackDamage * 1.8f;
+
+        // TỰ ĐỘNG TÌM MỤC TIÊU GẦN NHẤT
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        Node2D nearest = null;
+        float minDist = 650f; // Tầm bắn tự tìm 650px
+        foreach (var e in enemies)
+        {
+            if (e is Node2D enemyNode && IsInstanceValid(enemyNode))
+            {
+                float d = GlobalPosition.DistanceTo(enemyNode.GlobalPosition);
+                if (d < minDist) { minDist = d; nearest = enemyNode; }
+            }
+        }
+        axe.Target = nearest;
+
+        GetParent().AddChild(axe);
+        _animatedSprite.Play("attack1");
+        await ToSignal(GetTree().CreateTimer(0.3f), "timeout");
+        _isAttacking = false;
+    }
+
+    private async void ExecuteWhirlwind()
+    {
+        _skill2Timer = Skill2Cooldown;
+        _isSpinning = true;
+        float duration = 3.0f;
+        float elapsed = 0f;
+        
+        var spinVFX = new SpinVFX();
+        spinVFX.Position = new Vector2(0, -30);
+        AddChild(spinVFX);
+
+        while (elapsed < duration && IsInstanceValid(this) && !_isDead)
+        {
+            float dt = 0.04f;
+            elapsed += dt;
+            spinVFX.RotationAngle = elapsed * 25.0f;
+            _animatedSprite.FlipH = Mathf.Cos(elapsed * 25.0f) < 0;
+            _animatedSprite.Play("attack1");
+            
+            // Deal damage
+            var enemies = GetTree().GetNodesInGroup("enemies");
+            foreach (Node2D e in enemies)
+            {
+                if (GlobalPosition.DistanceTo(e.GlobalPosition) < 130f)
+                    if (e.HasMethod("TakeDamage")) e.Call("TakeDamage", (int)(AttackDamage * 0.4f));
+            }
+            await ToSignal(GetTree().CreateTimer(dt), "timeout");
+        }
+        _isSpinning = false;
+        if (IsInstanceValid(spinVFX)) spinVFX.QueueFree();
+    }
+
+    private async void ExecuteEarthBreaker()
+    {
+        _skill3Timer = Skill3Cooldown;
+        _isAttacking = true;
+        _animatedSprite.Play("jump");
+        
+        Vector2 startPos = GlobalPosition;
+        var tw = CreateTween();
+        tw.TweenProperty(this, "global_position:y", startPos.Y - 150, 0.4f);
+        await ToSignal(tw, "finished");
+        
+        var slam = CreateTween();
+        slam.TweenProperty(this, "global_position:y", startPos.Y, 0.15f);
+        await ToSignal(slam, "finished");
+
+        // Impact
+        var crack = new GroundCrackVFX();
+        crack.GlobalPosition = GlobalPosition;
+        GetParent().AddChild(crack);
+
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        foreach (Node2D e in enemies)
+        {
+            if (GlobalPosition.DistanceTo(e.GlobalPosition) < 300f)
+                if (e.HasMethod("TakeDamage")) e.Call("TakeDamage", AttackDamage * 5);
+        }
+        _isAttacking = false;
+    }
+
+    public async void AutoWalkToCave(Vector2 targetPos)
+    {
+        _isAutoWalking = true;
+        _autoWalkTarget = targetPos;
+        _isEnteringCave = true;
+        SetCollisionMaskValue(2, false); // Mở va chạm môi trường để không bị kẹt đá
+        GD.Print("Thạch Sanh: Tự động đi vào hang...");
+    }
+
+    private void HandleAutoWalkMovement(float dt)
+    {
+        Vector2 dir = (_autoWalkTarget - GlobalPosition).Normalized();
+        Velocity = Velocity.Lerp(dir * (Speed * 0.7f), dt * 5f);
+        _facingDirection = dir;
+
+        float dist = GlobalPosition.DistanceTo(_autoWalkTarget);
+        if (dist < 200f && _isEnteringCave)
+        {
+            // Bắt đầu mờ dần muộn hơn, chỉ khi đã vào hẳn trong cửa hang (Yêu cầu dist < 200)
+            float alpha = Mathf.Clamp((dist - 50f) / 150f, 0, 1);
+            Modulate = new Color(1, 1, 1, alpha);
+        }
+
+        if (dist < 50f)
+        {
+            _isAutoWalking = false;
+            Velocity = Vector2.Zero;
+            GD.Print("Thạch Sanh: Đã vào hang sâu, chuyển màn!");
+            // Gọi chuyển màn
+            var parent = GetParent();
+            if (parent != null && parent.HasMethod("ChangeLevel"))
+            {
+                parent.Call("ChangeLevel");
+            }
+        }
+    }
+
+    private void PrepareAxeTexture()
+    {
+        if (_cachedAxeTexture != null) return;
+        var fullTexture = GD.Load<Texture2D>("res://Assets/Sprites/Player/Riu_Skill.png");
+        if (fullTexture == null)
+        {
+            fullTexture = GD.Load<Texture2D>("res://icon.svg");
+            _cachedAxeTexture = fullTexture;
+            return;
+        }
+
+        Image img = fullTexture.GetImage();
+        if (img == null) { _cachedAxeTexture = fullTexture; return; }
+        img.Decompress();
+        img.Convert(Image.Format.Rgba8);
+
+        // THUẬT TOÁN TÁCH NỀN THÔNG MINH CHO VŨ KHÍ
+        Color bgColor = img.GetPixel(0, 0); 
+        for (int y = 0; y < img.GetHeight(); y++)
+        {
+            for (int x = 0; x < img.GetWidth(); x++)
+            {
+                Color p = img.GetPixel(x, y);
+                // Lọc màu xanh lá (Chroma Key) và màu nền góc
+                bool isGreen = p.G > 0.4f && p.G > p.R * 1.1f && p.G > p.B * 1.1f;
+                float diff = Mathf.Sqrt(Mathf.Pow(p.R - bgColor.R, 2) + Mathf.Pow(p.G - bgColor.G, 2) + Mathf.Pow(p.B - bgColor.B, 2));
+                
+                if (isGreen || diff < 0.35f)
+                    img.SetPixel(x, y, new Color(1, 1, 1, 0));
+            }
+        }
+        _cachedAxeTexture = ImageTexture.CreateFromImage(img);
+    }
+
+    private Texture2D GetCleanSkillIcon(string[] paths, int index)
+    {
+        var tex = GD.Load<Texture2D>(paths[index]);
+        if (tex == null) return GD.Load<Texture2D>("res://icon.svg");
+
+        Image img = tex.GetImage();
+        if (img == null) return tex;
+        img.Decompress();
+        img.Convert(Image.Format.Rgba8);
+
+        Color bgColor = img.GetPixel(0, 0); // Lấy màu góc làm nền
+        for (int y = 0; y < img.GetHeight(); y++)
+        {
+            for (int x = 0; x < img.GetWidth(); x++)
+            {
+                Color p = img.GetPixel(x, y);
+                // Thuật toán tách nền xanh (Chroma Key) và màu nền tĩnh
+                bool isGreen = p.G > 0.4f && p.G > p.R * 1.1f && p.G > p.B * 1.1f;
+                float diffToBg = Mathf.Sqrt(Mathf.Pow(p.R - bgColor.R, 2) + Mathf.Pow(p.G - bgColor.G, 2) + Mathf.Pow(p.B - bgColor.B, 2));
+
+                if (isGreen || diffToBg < 0.15f)
+                {
+                    img.SetPixel(x, y, new Color(1, 1, 1, 0)); // Làm trong suốt hoàn toàn
+                }
+            }
+        }
+        return ImageTexture.CreateFromImage(img);
     }
 }

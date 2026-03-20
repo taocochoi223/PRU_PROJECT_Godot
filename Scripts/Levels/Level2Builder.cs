@@ -283,7 +283,7 @@ public partial class Level2Builder : Node2D
 
     private Texture2D CreateRadialGradient(int size)
     {
-        var img = Image.Create(size, size, false, Image.Format.Rgba8);
+        var img = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
         Vector2 center = new Vector2(size / 2, size / 2);
         float radius = size / 2;
 

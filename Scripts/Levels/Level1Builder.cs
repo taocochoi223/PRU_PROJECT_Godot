@@ -62,6 +62,8 @@ public partial class Level1Builder : Node2D
         BuildForestTrees();
         BuildCaveEntrance();
         BuildMudPits();
+        BuildTreasureChest();
+        BuildWorldBounds();
         
         // Cập nhật: Áp dụng làm mờ cho các cây tĩnh được đặt thủ công trong Scene
         ApplyTransparencyToStaticTrees();
@@ -830,6 +832,20 @@ public partial class Level1Builder : Node2D
     // ═══════════════════════════════════════════════════════════
     //  CỬA HANG — Điểm kết thúc màn
     // ═══════════════════════════════════════════════════════════
+    private void BuildTreasureChest()
+    {
+        // Tải Scene Rương Báu
+        var chestScene = GD.Load<PackedScene>("res://Scenes/NPCs/TreasureChest.tscn");
+        if (chestScene != null)
+        {
+            var chest = chestScene.Instantiate<TreasureChest>();
+            // Đặt rương ở phía trước cửa hang (Cửa hang ở 4500, 500)
+            chest.GlobalPosition = new Vector2(4420, 520);
+            chest.RequireAllEnemiesDefeated = true; // Buộc phải diệt hết quái rừng mới hiện rương
+            AddChild(chest);
+        }
+    }
+
     private void BuildCaveEntrance()
     {
         var cave = new Node2D();
@@ -1034,5 +1050,48 @@ public partial class Level1Builder : Node2D
             points[i] = new Vector2(Mathf.Cos(angle) * rx * r_jitter, Mathf.Sin(angle) * ry * r_jitter);
         }
         return points;
+    }
+
+    private void BuildWorldBounds()
+    {
+        // ═══════════════════════════════════════════════════════════
+        // TẠO BIÊN GIỚI BẢN ĐỒ (Invisible Walls)
+        // ═══════════════════════════════════════════════════════════
+        var bounds = new StaticBody2D();
+        bounds.Name = "WorldBounds";
+        bounds.CollisionLayer = 2; // Layer Environment
+        AddChild(bounds);
+
+        // Biên trên (Top) - Chặn không cho leo quá cao lên phía Bắc rừng
+        var topShape = new CollisionShape2D();
+        var topRect = new RectangleShape2D();
+        topRect.Size = new Vector2(10000, 100);
+        topShape.Shape = topRect;
+        topShape.Position = new Vector2(2500, 50); // Mở rộng giới hạn trên
+        bounds.AddChild(topShape);
+
+        // Biên dưới (Bottom) - Chặn vực thẳm phía Nam rừng
+        var bottomShape = new CollisionShape2D();
+        var bottomRect = new RectangleShape2D();
+        bottomRect.Size = new Vector2(10000, 100);
+        bottomShape.Shape = bottomRect;
+        bottomShape.Position = new Vector2(2500, 1150); // Mở rộng giới hạn dưới
+        bounds.AddChild(bottomShape);
+
+        // Biên trái (Left) - Điểm bắt đầu game
+        var leftShape = new CollisionShape2D();
+        var leftRect = new RectangleShape2D();
+        leftRect.Size = new Vector2(100, 2000);
+        leftShape.Shape = leftRect;
+        leftShape.Position = new Vector2(0, 500);
+        bounds.AddChild(leftShape);
+
+        // Biên phải (Right) - Sau cửa hang (Chặn không cho chạy lố qua màn)
+        var rightShape = new CollisionShape2D();
+        var rightRect = new RectangleShape2D();
+        rightRect.Size = new Vector2(100, 2000);
+        rightShape.Shape = rightRect;
+        rightShape.Position = new Vector2(5000, 500); // 5000px là quá đủ rộng
+        bounds.AddChild(rightShape);
     }
 }

@@ -11,9 +11,14 @@ public partial class IsometricSnake : CharacterBody2D
 
     private AnimatedSprite2D _animSprite;
     private Node2D _target;
-    private bool _isDead = false;
+    public bool IsDead = false;
     private bool _canAttack = true;
     private Timer _attackCooldown;
+
+    // Health Bar UI
+    [Export] public Vector2 HealthBarOffset = new Vector2(-20, -50);
+    private Node2D _healthBarNode;
+    private ColorRect _healthBarFill;
 
     private void PlayAnimSafe(string preferred, string fallback = "walk")
     {
@@ -48,11 +53,44 @@ public partial class IsometricSnake : CharacterBody2D
 
         AddToGroup("enemies");
         YSortEnabled = true;
+
+        SetupHealthBar();
+    }
+
+    private void SetupHealthBar()
+    {
+        _healthBarNode = new Node2D();
+        _healthBarNode.Position = HealthBarOffset;
+
+        // Viền đen
+        ColorRect border = new ColorRect();
+        border.Color = new Color(0.1f, 0.1f, 0.1f);
+        border.Size = new Vector2(40, 8);
+        border.MouseFilter = Control.MouseFilterEnum.Ignore;
+
+        // Nền tối
+        ColorRect bg = new ColorRect();
+        bg.Color = new Color(0.2f, 0.2f, 0.2f);
+        bg.Size = new Vector2(38, 6);
+        bg.Position = new Vector2(1, 1);
+        bg.MouseFilter = Control.MouseFilterEnum.Ignore;
+
+        // Thanh máu xanh
+        _healthBarFill = new ColorRect();
+        _healthBarFill.Color = new Color("4caf50");
+        _healthBarFill.Size = new Vector2(38, 6);
+        _healthBarFill.Position = new Vector2(1, 1);
+        _healthBarFill.MouseFilter = Control.MouseFilterEnum.Ignore;
+
+        border.AddChild(bg);
+        _healthBarNode.AddChild(border);
+        _healthBarNode.AddChild(_healthBarFill);
+        AddChild(_healthBarNode);
     }
 
     public override void _PhysicsProcess(double delta)
     {
-        if (_isDead) return;
+        if (IsDead) return;
 
         // Simple AI: Find player
         if (_target == null)
@@ -85,7 +123,11 @@ public partial class IsometricSnake : CharacterBody2D
                 else
                 {
                     Velocity = Vector2.Zero;
-                    if (_canAttack) Attack();
+                    if (_canAttack) 
+                    {
+                        CreateAttackVFX();
+                        Attack();
+                    }
                 }
             }
             else
@@ -115,6 +157,14 @@ public partial class IsometricSnake : CharacterBody2D
     public void TakeDamage(int damage)
     {
         Health -= damage;
+        
+        // Cập nhật thanh máu
+        if (_healthBarFill != null)
+        {
+            float percent = Math.Max(0f, (float)Health / 100f);
+            _healthBarFill.Size = new Vector2(38f * percent, 6f);
+        }
+
         if (Health <= 0) Die();
         else
         {
@@ -128,7 +178,14 @@ public partial class IsometricSnake : CharacterBody2D
 
     private void Die()
     {
-        _isDead = true;
+        // Xóa thanh máu khi chết
+        if (_healthBarNode != null)
+        {
+            _healthBarNode.QueueFree();
+            _healthBarNode = null;
+        }
+
+        IsDead = true;
         PlayAnimSafe("die", "hurt");
         CollisionLayer = 0;
         CollisionMask = 0;
@@ -136,5 +193,56 @@ public partial class IsometricSnake : CharacterBody2D
         var tw = CreateTween();
         tw.TweenProperty(this, "modulate:a", 0f, 1.0f);
         tw.Chain().TweenCallback(Callable.From(() => QueueFree()));
+    }
+
+    private void CreateAttackVFX()
+    {
+        // Container cho hiệu ứng Cắn (Bite) của Rắn Isometric
+        var biteNode = new Node2D();
+        float faceSign = _animSprite.FlipH ? -1f : 1f;
+        
+        // Miệng rắn thường nằm ở X=25, Y=-15 (tùy sprite)
+        biteNode.Position = new Vector2(faceSign * 30, -15);
+        AddChild(biteNode);
+
+        // --- TẠO 4 RĂNG NANH (FANGS) ---
+        for (int i = 0; i < 4; i++)
+        {
+            var fang = new ColorRect();
+            fang.Size = new Vector2(6, 12);
+            fang.Color = new Color(1, 1, 1); // Màu trắng răng
+            
+            bool isTop = i < 2;
+            float xOff = (i % 2 == 0) ? -8 : 8;
+            fang.Position = new Vector2(xOff, isTop ? -20 : 20);
+            biteNode.AddChild(fang);
+
+            var tw = CreateTween();
+            tw.SetParallel(true);
+            float targetY = isTop ? -2 : 2;
+            tw.TweenProperty(fang, "position:y", targetY, 0.12f).SetTrans(Tween.TransitionType.Quart);
+            tw.Chain().TweenProperty(fang, "color", new Color(0.7f, 0.3f, 1.0f), 0.05f); // Nháy tím độc
+            tw.TweenProperty(fang, "modulate:a", 0f, 0.2f).SetDelay(0.1f);
+        }
+
+        // --- HIỆU ỨNG NHỎ GIỌT ĐỘC TỐ (POISON DRIP) ---
+        var drip = new CpuParticles2D();
+        drip.Amount = 10;
+        drip.Lifetime = 0.6f;
+        drip.Explosiveness = 0.8f;
+        drip.Direction = new Vector2(0, 1);
+        drip.Spread = 30f;
+        drip.Gravity = new Vector2(0, 400);
+        drip.InitialVelocityMin = 40f;
+        drip.InitialVelocityMax = 80f;
+        drip.ScaleAmountMin = 2f;
+        drip.ScaleAmountMax = 5f;
+        drip.Color = new Color(0.2f, 0.9f, 0.1f, 0.8f); // Xanh lá độc
+        biteNode.AddChild(drip);
+        drip.Emitting = true;
+
+        // Cleanup
+        var cleanup = GetTree().CreateTimer(0.8f);
+        cleanup.Timeout += () => { if (IsInstanceValid(biteNode)) biteNode.QueueFree(); };
     }
 }

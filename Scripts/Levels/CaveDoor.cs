@@ -10,11 +10,13 @@ public partial class CaveDoor : Area2D
     [Export] public float TransitionDelay = 0.5f; // Đợi chút trước khi fade
 
     private bool _isTriggered = false;
+    private bool _isActive = false; // Mặc định bị khóa
     private Label _hintLabel;
     private AnimatedSprite2D _doorGlow;
 
     public override void _Ready()
     {
+        AddToGroup("LevelExit"); // Cho phép Rương báu tìm thấy để mở khóa
         CollisionLayer = 0;
         CollisionMask = 1; // Detect Player
 
@@ -23,7 +25,7 @@ public partial class CaveDoor : Area2D
 
         // Tạo label gợi ý
         _hintLabel = new Label();
-        _hintLabel.Text = "✦ Cửa Hang ✦\nTiến vào...";
+        _hintLabel.Text = "✦ Cửa Hang ✦\nLối vào...";
         _hintLabel.HorizontalAlignment = HorizontalAlignment.Center;
         _hintLabel.VerticalAlignment = VerticalAlignment.Center;
         _hintLabel.Position = new Vector2(-80, -95);
@@ -32,8 +34,23 @@ public partial class CaveDoor : Area2D
         _hintLabel.Visible = false;
         AddChild(_hintLabel);
 
-        // Hiệu ứng glow xung quanh cửa
+        // Ban đầu bị khóa (Mờ tối)
+        Modulate = new Color(0.4f, 0.4f, 0.4f);
+    }
+
+    public void Activate()
+    {
+        _isActive = true;
+        Modulate = Colors.White;
+        
+        // Hiệu ứng glow rực rỡ khi được mở khóa
         StartDoorGlowEffect();
+        
+        _hintLabel.Text = "✧ Cửa Hang Đã Mở ✧\nTiến vào...";
+        _hintLabel.Visible = true;
+        
+        var tw = GetTree().CreateTimer(3.0f);
+        tw.Timeout += () => { if (IsInstanceValid(_hintLabel)) _hintLabel.Visible = false; };
     }
 
     public override void _Process(double delta)
@@ -50,6 +67,15 @@ public partial class CaveDoor : Area2D
     {
         if (_isTriggered) return;
         if (body == null || !body.IsInGroup("player")) return;
+
+        if (!_isActive)
+        {
+            // Dự phòng: Nếu chưa mở rương mà đòi vào
+            _hintLabel.Text = "Cửa hang đã bị khóa!\nHãy mở Rương Báu trước.";
+            _hintLabel.Visible = true;
+            _hintLabel.AddThemeColorOverride("font_color", Colors.Orange);
+            return;
+        }
 
         _isTriggered = true;
         _hintLabel.Visible = false;

@@ -76,10 +76,10 @@ public partial class TreasureChest : Area2D
         BodyEntered += OnBodyEntered;
         _animSprite.Play("idle"); // Lão Hạc => Rương đóng
 
-        // Ẩn rương ngay từ đầu nếu yêu cầu diệt hết quái (Màn 1)
+        // Để rương hiển thị ngay từ đầu nhưng "khóa" (Màn 1)
         if (RequireAllEnemiesDefeated)
         {
-            Visible = false;
+            Visible = true; // Luôn hiện để người chơi biết cần làm nhiệm vụ
         }
     }
 
@@ -155,6 +155,7 @@ public partial class TreasureChest : Area2D
             foreach (var node in allEnemiesInGroup)
             {
                 if (node is BaseEnemy enemy && !enemy.IsDead) aliveCount++;
+                else if (node is IsometricSnake snake && !snake.IsDead) aliveCount++;
             }
 
             if (aliveCount == 0)
@@ -169,6 +170,11 @@ public partial class TreasureChest : Area2D
                         {
                             GlobalPosition = e.GlobalPosition;
                             break;
+                        }
+                        else if (node is IsometricSnake s && s.IsDead)
+                        {
+                             GlobalPosition = s.GlobalPosition;
+                             break;
                         }
                     }
                 }
@@ -189,12 +195,17 @@ public partial class TreasureChest : Area2D
         {
             _messageLabel.Visible = false;
 
-            // Một cơ chế đặc biệt: Hiện rương ra khi quái đã chết hết (dành cho màn 1)
+            // Bỏ cơ chế tự hiện rương muộn vì bây giờ ta cho hiện ngay từ đầu
+/*
             if (RequireAllEnemiesDefeated && !Visible)
             {
                 var enemies = GetTree().GetNodesInGroup("enemies");
                 bool anyAlive = false;
-                foreach (var n in enemies) if (n is BaseEnemy e && !e.IsDead) anyAlive = true;
+                foreach (var n in enemies) 
+                {
+                    if (n is BaseEnemy e && !e.IsDead) anyAlive = true;
+                    else if (n is IsometricSnake s && !s.IsDead) anyAlive = true;
+                }
 
                 if (!anyAlive)
                 {
@@ -204,6 +215,7 @@ public partial class TreasureChest : Area2D
                     tw.TweenProperty(this, "modulate:a", 1.0f, 1.0f);
                 }
             }
+*/
         }
     }
 
@@ -330,14 +342,25 @@ public partial class TreasureChest : Area2D
 
                 if (GameManager.Instance.CurrentLevel == 1)
                 {
-                    // Màn 1: Mở khóa J và K (tổng 2 kỹ năng)
-                    GameManager.Instance.UnlockedSkillsCount = 2;
-                    GameManager.Instance.TotalKeys++; // Nhận luôn 1 chìa khóa ở Màn 1
+                    // Màn 1: Bây giờ nhận Rương sẽ mở khóa Kỹ năng thứ 3 (Skill L)
+                    // Trước đó nhân vật đã có sẵn J và K (2 kỹ năng)
+                    GameManager.Instance.UnlockedSkillsCount = 3;
+                    GameManager.Instance.TotalKeys++; 
 
-                    // Hiện 3 trang mô tả (Slide): Chìa khóa, Skill J, Skill K
+                    // Hiện 2 trang mô tả: Chìa khóa, Skill L
                     PlayDialogueAndShowPopups(player, 1);
 
-                    GD.Print("Màn 1: Nhận kỹ năng J, K và chìa khóa xong, hiện popup mô tả.");
+                    // Tự động kích hoạt Cổng Ra (Cave Door) khi lấy chìa khóa xong
+                    var exits = GetTree().GetNodesInGroup("LevelExit");
+                    foreach (var exit in exits)
+                    {
+                        if (exit.HasMethod("Activate")) exit.Call("Activate");
+                    }
+
+                    // Cập nhật giao diện Kỹ năng cho nhân vật ngay lập tức
+                    if (player.HasMethod("RefreshSkillUI")) player.Call("RefreshSkillUI");
+
+                    GD.Print("Màn 1: Nhận kỹ năng J, K và chìa khóa xong, đã mở cửa hang.");
                 }
                 else if (GameManager.Instance.CurrentLevel == 2)
                 {
@@ -347,6 +370,8 @@ public partial class TreasureChest : Area2D
 
                     // Hiện popup mô tả cho kỹ năng L
                     PlayDialogueAndShowPopups(player, 2);
+
+                    if (player.HasMethod("RefreshSkillUI")) player.Call("RefreshSkillUI");
 
                     GD.Print("Màn 2: Nhận kỹ năng L và hiện popup mô tả.");
                 }
@@ -378,8 +403,8 @@ public partial class TreasureChest : Area2D
 
         if (level == 1)
         {
-            lines.Add(new DialogueManager.DialogueLine("Ngọc Hoàng", "Thạch Sanh! Ta đang dõi theo hành trình của ngươi. Ngươi đã vượt qua rừng thiêng bằng ý chí, không hề nản lòng dù hiểm nguy. Rìu thần của ngươi xứng đáng được thức tỉnh! \"Hãy nhận lấy hai Binh Pháp đầu tiên, hãy dùng chúng bảo vệ lẽ phải trên con đường phía trước! “", null, "res://Assets/Audio/Voices/god_m1_reward.mp3"));
-            lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Hai Binh pháp từ Thiên Đình sẽ giúp ta tiêu diệt cái ác. Ta sẽ không phụ lòng mọi người!", null, "res://Assets/Audio/Voices/ts_m1_god2.mp3"));
+            lines.Add(new DialogueManager.DialogueLine("Ngọc Hoàng", "Thạch Sanh! Ta đang dõi theo hành trình của ngươi. Rừng thiêng đã bị dẹp yên. Rìu thần của ngươi xứng đáng được thức tỉnh hoàn toàn! \"Hãy nhận lấy Binh Pháp cuối cùng, hãy dùng nó bảo vệ lẽ phải và cứu lấy Công Chúa! “", null, "res://Assets/Audio/Voices/god_m1_reward.mp3"));
+            lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Đây là tuyệt kỹ tối thượng! Chằn Tinh, hãy đợi đấy, ta tới đây!", null, "res://Assets/Audio/Voices/ts_m1_god2.mp3"));
             lines.Add(new DialogueManager.DialogueLine("Ngọc Hoàng", "Hãy nhớ cho kỹ, Thạch Sanh. Sức mạnh không phải để phô trương — mà để che chở kẻ yếu và trừng trị yêu tà. Càng vào sâu, lòng ngươi càng phải vững hơn rìu trong tay.", null, "res://Assets/Audio/Voices/god_m1_advise.mp3"));
             lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Con xin ghi nhớ. Rìu này chỉ vung vì lẽ phải, không vì tư thù…", null, "res://Assets/Audio/Voices/ts_m1_god3.mp3"));
         }
@@ -619,11 +644,7 @@ public partial class TreasureChest : Area2D
             }
             else if (_popupSlide == 2)
             {
-                ShowSkillCard("J");
-            }
-            else if (_popupSlide == 3)
-            {
-                ShowSkillCard("K");
+                ShowSkillCard("L");
             }
         }
         else if (GameManager.Instance.CurrentLevel == 2)
@@ -1030,7 +1051,8 @@ public partial class TreasureChest : Area2D
                 // Nhưng hiện tại Màn 1 yêu cầu 3 chìa nên có thể cổng đã có sẵn hoặc chờ logic khác
                 else if (GameManager.Instance.CurrentLevel == 1)
                 {
-                    // Có thể gọi hàm để player biết đường đi tiếp
+                    // Sau khi nhận chìa khóa ở Màn 1, nhân vật tự động đi vào hang và mờ dần
+                    _currentPlayer.Call("AutoWalkToCave", new Vector2(4750, 500));
                 }
             }
         }

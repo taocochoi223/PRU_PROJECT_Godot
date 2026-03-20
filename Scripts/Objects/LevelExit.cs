@@ -27,8 +27,10 @@ public partial class LevelExit : Area2D
         _hintLabel.Visible = false;
         AddChild(_hintLabel);
 
-        // Ban đầu bị ẩn
-        Visible = false;
+        // Ban đầu bị khóa (Mờ tối)
+        Visible = true;
+        _isActive = false;
+        _visual.Modulate = new Color(0.3f, 0.3f, 0.3f, 0.8f);
     }
 
     public void Activate()
@@ -46,10 +48,20 @@ public partial class LevelExit : Area2D
 
     private void OnBodyEntered(Node2D body)
     {
-        if (!_isActive) return;
-        
-        if (body is Player)
+        if (body.IsInGroup("player") || body is Player || body is IsometricPlayer)
         {
+            if (!_isActive)
+            {
+                // Hiện thông báo khóa
+                _hintLabel.Text = "HỐI TIẾC! Cửa hang đã bị khóa ma thuật.\nHãy tìm Rương Báu để lấy Chìa Khóa!";
+                _hintLabel.Visible = true;
+                _hintLabel.AddThemeColorOverride("font_color", Colors.Orange);
+                
+                var tw = GetTree().CreateTimer(3.0f);
+                tw.Timeout += () => { if (IsInstanceValid(_hintLabel)) _hintLabel.Visible = false; };
+                return;
+            }
+            
             GD.Print("Chúc mừng! Bạn đã hoàn thành level!");
             GameManager.Instance.NextLevel();
         }

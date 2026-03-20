@@ -13,6 +13,9 @@ public partial class MiniMap : Control
     private float _scaleX;
     private float _scaleY;
 
+    // Quản lý các chấm đỏ đại diện cho quái
+    private System.Collections.Generic.Dictionary<Node2D, ColorRect> _enemyMarkers = new();
+
     public override void _Ready()
     {
         _player = GetTree().GetFirstNodeInGroup("player") as Node2D;
@@ -109,5 +112,51 @@ public partial class MiniMap : Control
         {
             _player = GetTree().GetFirstNodeInGroup("player") as Node2D;
         }
+
+        // LUÔN CẬP NHẬT VỊ TRÍ QUÁI MỖI FRAME
+        UpdateEnemyMarkers();
+    }
+
+    private void UpdateEnemyMarkers()
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        
+        // 1. Tạo hoặc cập nhật vị trí quái hiện tại
+        foreach (var node in enemies)
+        {
+            if (node is Node2D enemyNode && IsInstanceValid(enemyNode))
+            {
+                // Nếu quái đã chết (nếu có thuộc tính IsDead), ta coi như không còn trên map
+                bool isDead = (bool)enemyNode.Get("IsDead");
+                if (isDead) continue;
+
+                if (!_enemyMarkers.ContainsKey(enemyNode))
+                {
+                    // Tạo chấm đỏ mới cho quái
+                    var dot = new ColorRect();
+                    dot.Color = new Color(1.0f, 0.0f, 0.0f, 1.0f); // Đỏ chói rực rỡ
+                    dot.Size = new Vector2(5, 5); // Chấm nhỏ hơn chấm người chơi
+                    _mapContent.AddChild(dot);
+                    _enemyMarkers[enemyNode] = dot;
+                }
+
+                // Cập nhật vị trí
+                Vector2 mPos = new Vector2(enemyNode.GlobalPosition.X * _scaleX, enemyNode.GlobalPosition.Y * _scaleY);
+                _enemyMarkers[enemyNode].Position = mPos - (_enemyMarkers[enemyNode].Size / 2);
+                _enemyMarkers[enemyNode].Visible = true;
+            }
+        }
+
+        // 2. Dọn dẹp quái đã bị tiêu diệt
+        var killedEnemies = new System.Collections.Generic.List<Node2D>();
+        foreach (var kvp in _enemyMarkers)
+        {
+            if (!IsInstanceValid(kvp.Key) || (bool)kvp.Key.Get("IsDead"))
+            {
+                kvp.Value.QueueFree();
+                killedEnemies.Add(kvp.Key);
+            }
+        }
+        foreach (var k in killedEnemies) _enemyMarkers.Remove(k);
     }
 }

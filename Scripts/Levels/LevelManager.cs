@@ -55,8 +55,6 @@ public partial class LevelManager : Node2D
 
         CollectCheckpoints();
         SpawnPlayer();
-        if (LevelNumber == 1)
-            SpawnLevel1RewardChest();
         ConnectPlayerSignals();
         CallDeferred(nameof(PlayLevelStartSequence));
 
