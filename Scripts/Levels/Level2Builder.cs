@@ -151,7 +151,7 @@ public partial class Level2Builder : Node2D
         {
             float x = i * 28 + (float)_rng.NextDouble() * 10;
             // Dừng tạo đá ở cửa hang (3850) để không bị "lòi" ra ngoài
-            if (x < 450 || x > 3850) continue; 
+            if (x < 450 || x > 3750) continue; 
             
             // Upper wall Divider (y=310 to 330)
             CreateOccludingWall(new Vector2(x, 310 + (float)_rng.NextDouble() * 20));
@@ -402,6 +402,7 @@ public partial class Level2Builder : Node2D
         if (_exitScene == null) return;
         var exit = _exitScene.Instantiate<LevelExit>();
         exit.Position = new Vector2(3850, 500);
+        exit.Scale = new Vector2(3.0f, 3.0f); // Phóng to gấp 3 lần để vừa 2 bên đá
         exit.Name = "LevelExit";
         AddChild(exit);
 
@@ -427,13 +428,13 @@ public partial class Level2Builder : Node2D
         }
 
         // Chặn hướng di chuyển ở cuối map (Phễu dẫn vào Exit) - Chừa khoảng trống ở giữa (Y=500)
-        for (int i = 0; i < 6; i++)
-        {
-            // Upper funnel wall (Kết thúc ở Y=400)
-            CreateOccludingWall(new Vector2(3850, 300 + i * 20));
-            // Lower funnel wall (Bắt đầu từ Y=600)
-            CreateOccludingWall(new Vector2(3850, 700 - i * 20));
-        }
+        // for (int i = 0; i < 6; i++)
+        // {
+        //     // Upper funnel wall (Kết thúc ở Y=400)
+        //     CreateOccludingWall(new Vector2(3850, 300 + i * 20));
+        //     // Lower funnel wall (Bắt đầu từ Y=600)
+        //     CreateOccludingWall(new Vector2(3850, 700 - i * 20));
+        // }
 
         var light = new PointLight2D();
         light.Texture = _lightTexture;
