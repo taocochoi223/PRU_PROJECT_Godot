@@ -79,7 +79,7 @@ public partial class TreasureChest : Area2D
         // Để rương hiển thị ngay từ đầu nhưng "khóa" (Màn 1)
         if (RequireAllEnemiesDefeated)
         {
-            Visible = true; // Luôn hiện để người chơi biết cần làm nhiệm vụ
+            Visible = (GameManager.Instance.CurrentLevel == 1); // Chỉ hiện ở màn 1 để người chơi biết, các màn khác ẩn đi
         }
     }
 
@@ -105,8 +105,8 @@ public partial class TreasureChest : Area2D
             };
             _animSprite.SpriteFrames = SpriteHelper.BuildSpriteFrames(animations);
 
-            // Chỉnh Scale nhỏ lại vì hình tải trên mạng độ phân giải cao, tăng lên theo yêu cầu
-            _animSprite.Scale = new Vector2(0.12f, 0.12f);
+            // Chỉnh Scale nhỏ lại vì hình tải trên mạng độ phân giải cao
+            _animSprite.Scale = new Vector2(0.1f, 0.1f);
             _animSprite.Position = new Godot.Vector2(0, -40); // Đẩy nhẹ lên trên vì rương to ra
         }
         else

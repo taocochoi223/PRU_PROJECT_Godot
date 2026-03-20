@@ -100,10 +100,10 @@ public partial class RollingRock : CharacterBody2D
     private void OnHitAreaBodyEntered(Node2D body)
     {
         if (_hasHitPlayer) return;
-        if (body is Player player)
+        if (body.IsInGroup("player") || body is Player || body is IsometricPlayer)
         {
             _hasHitPlayer = true;
-            player.TakeDamage(Damage);
+            body.Call("TakeDamage", Damage);
 
             // Knockback ra xa hướng đá lăn
             // Reset sau 0.5s để có thể hit lại nếu player quay lại

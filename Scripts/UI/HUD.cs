@@ -8,6 +8,7 @@ public partial class HUD : CanvasLayer
     private Label _levelLabel;
     private Label _livesLabel;
     private Label _keysLabel;
+    private Label _enemyCountLabel;
 
     // ── Pause UI ─────────────────────────────────────────────────────────────
     // _overlayLayer dùng Layer=10, luôn đè lên skill icons (Layer=5)
@@ -66,6 +67,15 @@ public partial class HUD : CanvasLayer
         _keysLabel.AddThemeConstantOverride("outline_size", 3);
         _keysLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
         healthSection.AddChild(_keysLabel);
+
+        // Label 👹 Số quái vật
+        _enemyCountLabel = new Label();
+        _enemyCountLabel.AddThemeFontSizeOverride("font_size", 18);
+        _enemyCountLabel.HorizontalAlignment = HorizontalAlignment.Left;
+        _enemyCountLabel.AddThemeColorOverride("font_color", new Color(1, 0.5f, 0f)); // Orange for enemies
+        _enemyCountLabel.AddThemeConstantOverride("outline_size", 3);
+        _enemyCountLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+        healthSection.AddChild(_enemyCountLabel);
 
         // ── CanvasLayer riêng cho gear + pause ───────────────────────────
         // Skill icons dùng Layer=5 → đặt layer này = 10 để KHÔNG bao giờ bị che
@@ -386,6 +396,13 @@ public partial class HUD : CanvasLayer
         {
             _keysLabel.Text = $"🗝️ Chìa khóa: {GameManager.Instance.TotalKeys} / 3";
             _keysLabel.Visible = GameManager.Instance.TotalKeys > 0;
+        }
+
+        if (_enemyCountLabel != null)
+        {
+            int remaining = GameManager.Instance.TotalEnemies - GameManager.Instance.DefeatedEnemies;
+            _enemyCountLabel.Text = $"👹 Quái vật: {remaining} / {GameManager.Instance.TotalEnemies}";
+            _enemyCountLabel.Visible = GameManager.Instance.TotalEnemies > 0;
         }
     }
 

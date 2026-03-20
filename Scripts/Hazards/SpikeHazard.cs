@@ -197,17 +197,22 @@ public partial class SpikeHazard : Node2D
 
     private void OnBodyEntered(Node2D body)
     {
-        if (body is Player player)
+        if (body.IsInGroup("player") || body is Player || body is IsometricPlayer)
         {
-            _playerOnSpike = player;
+            if (body is Player p) _playerOnSpike = p;
+            
             if (_canDamage && _isUp)
-                DamagePlayer(player);
+            {
+                body.Call("TakeDamage", Damage);
+                _canDamage = false;
+                _damageCooldownTimer.Start();
+            }
         }
     }
 
     private void OnBodyExited(Node2D body)
     {
-        if (body is Player) _playerOnSpike = null;
+        if (body.IsInGroup("player") || body is Player || body is IsometricPlayer) _playerOnSpike = null;
     }
 
     private void DamagePlayer(Player player)

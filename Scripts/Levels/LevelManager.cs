@@ -57,20 +57,13 @@ public partial class LevelManager : Node2D
         SpawnPlayer();
         ConnectPlayerSignals();
         CallDeferred(nameof(PlayLevelStartSequence));
+        CallDeferred(nameof(InitializeEnemyCount));
 
         if (LevelNumber == 3)
         {
             SetupLevel3();
             SetupLevel3Atmosphere();
         }
-
-        // Tạm thời tắt bẫy đá cũ của side-scroller cho phong cách Isometric mới
-        /*
-        if (LevelNumber == 1)
-        {
-            SpawnLevel1CustomTraps();
-        }
-        */
 
         // Tự động biến các cục đá trang trí ở giữa đường thành chướng ngại vật (vật cản)
         if (LevelNumber != 1) // Bỏ qua ở Level 1 Isometric vì chúng ta dùng hệ thống tường riêng
@@ -83,8 +76,9 @@ public partial class LevelManager : Node2D
         {
             if (child is Sprite2D sprite && sprite.Name.ToString().StartsWith("Rock_D"))
             {
-                // Kéo rock lên lớp z_index cao hơn để đứng ngang hàng với Player (-1 thay vì -11)
-                sprite.ZIndex = -1;
+                // Cho phép Y-sorting tự động xử lý thay vì ép Z-index cố định
+                sprite.YSortEnabled = true;
+                sprite.ZIndex = 0; // Đưa về 0 để ngang hàng với Player
 
                 // Tạo vật lý cản đường (Environment layer = 2)
                 var staticBody = new StaticBody2D();
@@ -101,26 +95,41 @@ public partial class LevelManager : Node2D
 
                 staticBody.AddChild(collisionShape);
                 sprite.AddChild(staticBody);
+
+                // Ưu tiên đưa vào LevelBuilder để cùng context Y-Sort với các vật thể khác
+                var builderNode = GetNodeOrNull("LevelBuilder");
+                if (builderNode != null)
+                {
+                    CallDeferred(nameof(MoveToBuilder), sprite, builderNode);
+                }
+
+                // --- HIỆU ỨNG NHÌN XUYÊN (SEE-THROUGH) ---
+                var detector = new Area2D();
+                detector.CollisionLayer = 0;
+                detector.CollisionMask = 1; // Player
+                
+                var dShape = new CollisionShape2D();
+                // Tăng kích thước detector để đảm bảo luôn thấy nhân vật khi nấp sau đá
+                var dRect = new RectangleShape2D { Size = new Vector2(350, 280) }; 
+                dShape.Shape = dRect;
+                dShape.Position = new Vector2(0, -120);
+                detector.AddChild(dShape);
+                sprite.AddChild(detector);
+
+                detector.BodyEntered += (body) => {
+                    if (body.IsInGroup("player")) {
+                        var tw = sprite.CreateTween();
+                        tw.TweenProperty(sprite, "modulate:a", 0.3f, 0.25f);
+                    }
+                };
+                detector.BodyExited += (body) => {
+                    if (body.IsInGroup("player")) {
+                        var tw = sprite.CreateTween();
+                        tw.TweenProperty(sprite, "modulate:a", 1.0f, 0.25f);
+                    }
+                };
             }
         }
-    }
-
-    private void SpawnLevel1CustomTraps()
-    {
-        var rock1 = new FallingRockTrap();
-        rock1.Position = new Vector2(750, -50);
-        rock1.TriggerRange = 600f;
-        AddChild(rock1);
-
-        var rock2 = new FallingRockTrap();
-        rock2.Position = new Vector2(1750, 0);
-        rock2.TriggerRange = 550f;
-        AddChild(rock2);
-
-        var rock3 = new FallingRockTrap();
-        rock3.Position = new Vector2(3000, -100);
-        rock3.TriggerRange = 650f;
-        AddChild(rock3);
     }
 
     private void CollectCheckpoints()
@@ -150,7 +159,11 @@ public partial class LevelManager : Node2D
             _player = PlayerScene.Instantiate<Node2D>();
             _player.GlobalPosition = spawnPos;
             _player.AddToGroup("player");
-            AddChild(_player);
+            
+            // Ưu tiên cho Player vào LevelBuilder để Y-Sort hoạt động thống nhất
+            var builder = GetNodeOrNull("LevelBuilder");
+            if (builder != null) builder.AddChild(_player);
+            else AddChild(_player);
 
             if (LevelNumber >= 2)
             {
@@ -159,26 +172,17 @@ public partial class LevelManager : Node2D
         }
     }
 
-    private void SpawnLevel1RewardChest()
+    private void MoveToBuilder(Node child, Node builder)
     {
-        var chestScene = GD.Load<PackedScene>("res://Scenes/NPCs/TreasureChest.tscn");
-        if (chestScene == null)
-        {
-            GD.PrintErr("LevelManager: Cannot load TreasureChest.tscn for Level 1 reward.");
-            return;
-        }
-
-        _level1RewardChest = chestScene.Instantiate<TreasureChest>();
-        _level1RewardChest.RequireAllEnemiesDefeated = true;
-        _level1RewardChest.GlobalPosition = new Vector2(4500, 560);
-        AddChild(_level1RewardChest);
+        if (child == null || !IsInstanceValid(child) || builder == null || !IsInstanceValid(builder)) return;
+        if (child.GetParent() != null) child.GetParent().RemoveChild(child);
+        builder.AddChild(child);
     }
 
     private void ConnectPlayerSignals()
     {
         if (_player != null)
         {
-            // Connect to death signal if it exists on either Player or IsometricPlayer
             if (_player.HasSignal("PlayerDied"))
                 _player.Connect("PlayerDied", Callable.From(OnPlayerDied));
         }
@@ -214,7 +218,6 @@ public partial class LevelManager : Node2D
 
         if (LevelNumber == 1 && GameManager.Instance != null && !GameManager.Instance.HasCompletedOnboardingTutorial)
         {
-            // Only run tutorial for original Player type
             if (_player.GetType().Name == "Player")
             {
                 _tutorialManager = new TutorialManager();
@@ -233,7 +236,6 @@ public partial class LevelManager : Node2D
         }
     }
 
-    // --- Level 3 Specific Setup ---
     private void SetupLevel3()
     {
         _princess = GetNodeOrNull<Node2D>("Princess");
@@ -246,16 +248,12 @@ public partial class LevelManager : Node2D
         {
             _boss.Visible = false;
             _boss.ProcessMode = ProcessModeEnum.Disabled;
-            // Đưa Boss ra xa tít để không bao giờ tạo tường tàng hình chắn đường ở mạng đầu tiên
             _boss.GlobalPosition = new Vector2(5000, 520);
         }
-
-        GD.Print("Level 3 Setup: Hidden Princess, Cage, and Boss.");
     }
 
     private void SetupLevel3Atmosphere()
     {
-        // Thu thập tất cả đom đóm để animate
         foreach (var child in GetChildren())
         {
             if (child is ColorRect cr)
@@ -268,7 +266,6 @@ public partial class LevelManager : Node2D
             }
         }
 
-        // Tạo layer Flash sấm chớp (toàn màn hình, ẩn đi)
         _lightningFlash = new ColorRect();
         _lightningFlash.ZIndex = 50;
         _lightningFlash.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -278,59 +275,37 @@ public partial class LevelManager : Node2D
         _lightningFlash.Position = new Vector2(-500, -200);
         AddChild(_lightningFlash);
 
-        // Random thời gian sấm chớp đầu tiên
         _nextLightningTime = (float)GD.RandRange(4.0, 10.0);
 
-        // Animate đom đóm bay lên xuống nhẹ
         foreach (var fly in _fireflies)
         {
             AnimateFirefly(fly);
         }
-
-        GD.Print($"Level 3 Atmosphere: {_fireflies.Count} fireflies, {_fogLayers.Count} fog layers.");
     }
 
     private void AnimateFirefly(ColorRect fly)
     {
         var tw = CreateTween();
-        tw.SetLoops(); // Lặp vô hạn
+        tw.SetLoops();
 
         float baseY = fly.Position.Y;
         float duration = (float)GD.RandRange(1.5, 3.5);
         float amplitude = (float)GD.RandRange(8.0, 25.0);
         float xDrift = (float)GD.RandRange(-15.0, 15.0);
 
-        // Bay lên
-        tw.TweenProperty(fly, "position",
-            new Vector2(fly.Position.X + xDrift, baseY - amplitude), duration)
-            .SetTrans(Tween.TransitionType.Sine)
-            .SetEase(Tween.EaseType.InOut);
-
-        // Mờ dần
-        tw.TweenProperty(fly, "modulate:a", 0.3f, duration * 0.5f)
-            .SetTrans(Tween.TransitionType.Sine);
-
-        // Bay xuống
-        tw.TweenProperty(fly, "position",
-            new Vector2(fly.Position.X - xDrift, baseY + amplitude * 0.5f), duration)
-            .SetTrans(Tween.TransitionType.Sine)
-            .SetEase(Tween.EaseType.InOut);
-
-        // Sáng lại
-        tw.TweenProperty(fly, "modulate:a", 1.0f, duration * 0.5f)
-            .SetTrans(Tween.TransitionType.Sine);
+        tw.TweenProperty(fly, "position", new Vector2(fly.Position.X + xDrift, baseY - amplitude), duration).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+        tw.TweenProperty(fly, "modulate:a", 0.3f, duration * 0.5f).SetTrans(Tween.TransitionType.Sine);
+        tw.TweenProperty(fly, "position", new Vector2(fly.Position.X - xDrift, baseY + amplitude * 0.5f), duration).SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
+        tw.TweenProperty(fly, "modulate:a", 1.0f, duration * 0.5f).SetTrans(Tween.TransitionType.Sine);
     }
 
     private void TriggerLightning()
     {
         if (_lightningFlash == null) return;
-
         var tw = CreateTween();
-        // Flash nhanh
         tw.TweenProperty(_lightningFlash, "color:a", 0.15f, 0.05f);
         tw.TweenProperty(_lightningFlash, "color:a", 0.0f, 0.08f);
         tw.TweenInterval(0.1f);
-        // Flash lần 2 (mạnh hơn)
         tw.TweenProperty(_lightningFlash, "color:a", 0.25f, 0.03f);
         tw.TweenProperty(_lightningFlash, "color:a", 0.0f, 0.15f);
     }
@@ -355,7 +330,6 @@ public partial class LevelManager : Node2D
                 _level3EnemiesCleared = true;
                 if (_princess != null) _princess.Visible = true;
                 if (_cage != null) _cage.Visible = true;
-                GD.Print("Level 3: All small enemies defeated! Princess appeared.");
             }
         }
         else if (!_level3BossSpawned)
@@ -363,55 +337,38 @@ public partial class LevelManager : Node2D
             if (_player != null && _princess != null)
             {
                 float dist = _player.GlobalPosition.DistanceTo(_princess.GlobalPosition);
-                if (dist < 400f) // Threshold to spawn Boss
+                if (dist < 400f)
                 {
                     if (_boss != null && !_level3BossSpawned)
                     {
                         _level3BossSpawned = true;
                         _bossFightStarted = true;
-
-                        // 1. Dịch chuyển Boss xuất hiện ngay sát mặt Công Chúa (Vị trí mới: 3300)
                         _boss.GlobalPosition = new Vector2(3300, 520);
-
                         _boss.Visible = true;
                         _boss.ProcessMode = ProcessModeEnum.Inherit;
-
-                        // 2. Khóa vùng đấu trường: Rộng đúng 1 màn hình (1152px)
                         LockBossArena();
-
-                        // 3. Tạo rào chắn chặn sát Công Chúa (Vị trí mới: 3320)
                         CreatePrincessBarrier();
-
-                        GD.Print("Level 3 Boss Arena: Full 1152px screen locked.");
                         CallDeferred(nameof(PlayBossIntroDialogue));
                     }
                 }
             }
         }
 
-        // Kiểm tra nếu Boss die thì MỞ KHÓA CAMERA và rào chắn
         if (_bossFightStarted && (_boss == null || !IsInstanceValid(_boss) || (_boss is BaseEnemy enemy && enemy.IsDead)))
         {
             if (_princessBarrier != null && IsInstanceValid(_princessBarrier))
             {
                 _princessBarrier.QueueFree();
                 _princessBarrier = null;
-
-                // Giải phóng Camera bên phải để đi tiếp tới Exit
                 var cam = GetTree().GetFirstNodeInGroup("MainCamera") as FollowCamera;
                 if (cam != null) cam.LimitRight = 5000;
-
-                GD.Print("Level 3: Boss defeated! Camera unlocked and barrier removed.");
             }
 
             if (!_level3BossCleanupDone)
             {
                 _level3BossCleanupDone = true;
                 CleanupPostBossEnemies();
-                if (_princess is Princess princess)
-                {
-                    princess.RequireAllEnemiesDefeated = false;
-                }
+                if (_princess is Princess princess) princess.RequireAllEnemiesDefeated = false;
             }
         }
     }
@@ -419,27 +376,18 @@ public partial class LevelManager : Node2D
     private void CleanupPostBossEnemies()
     {
         var enemies = GetTree().GetNodesInGroup("enemies");
-        int cleaned = 0;
         foreach (var node in enemies)
         {
             if (node == _boss) continue;
-            if (node is BaseEnemy enemyNode && !enemyNode.IsDead && IsInstanceValid(enemyNode))
-            {
-                enemyNode.QueueFree();
-                cleaned++;
-            }
+            if (node is BaseEnemy enemyNode && !enemyNode.IsDead && IsInstanceValid(enemyNode)) enemyNode.QueueFree();
         }
-
-        GD.Print($"Level 3: Cleaned up {cleaned} remaining enemies after boss defeat.");
     }
 
     private void CreatePrincessBarrier()
     {
-        // Chặn tại 3320 (Công chúa ở 3420)
         _princessBarrier = new StaticBody2D();
         _princessBarrier.Position = new Vector2(3320, 400);
         _princessBarrier.CollisionLayer = 2;
-
         var shape = new CollisionShape2D();
         shape.Shape = new RectangleShape2D { Size = new Vector2(40, 1000) };
         _princessBarrier.AddChild(shape);
@@ -451,17 +399,13 @@ public partial class LevelManager : Node2D
         var cam = GetTree().GetFirstNodeInGroup("MainCamera") as FollowCamera;
         if (cam != null)
         {
-            // Khóa đúng 1 màn hình: 2350 -> 3502 (1152px)
             cam.LimitLeft = 2350;
             cam.LimitRight = 3502;
         }
-
-        // Tường tàng hình chặn đường lùi
         var wall = new StaticBody2D();
         wall.Position = new Vector2(2350, 400);
         wall.CollisionLayer = 2;
         wall.CollisionMask = 1;
-
         var shape = new CollisionShape2D();
         shape.Shape = new RectangleShape2D { Size = new Vector2(60, 1000) };
         wall.AddChild(shape);
@@ -473,11 +417,11 @@ public partial class LevelManager : Node2D
         var dm = new DialogueManager();
         AddChild(dm);
         var lines = new List<DialogueManager.DialogueLine>
-    {
-        new DialogueManager.DialogueLine("Công Chúa", "Thạch Sanh, hãy cẩn thận, con Chằn Tinh này rất mạnh!", null, "res://Assets/Audio/Voices/princess_warn.mp3"),
-        new DialogueManager.DialogueLine("Chằn Tinh", "THẠCH SANH!!! Ngươi thật sự đến được tận đây?! Ta phải thừa nhận, ngươi đã hạ được tất cả lính canh của ta. Nhưng đây là sào huyệt của ta, ngươi nghĩ sẽ thoát được sao hahaha!", null, "res://Assets/Audio/Voices/chantinh_intro.mp3"),
-        new DialogueManager.DialogueLine("Thạch Sanh", "Ta đã bước vào đây để cứu người, thì cũng sẵn sàng kết thúc mọi hiểm họa tại đây.", null, "res://Assets/Audio/Voices/ts_boss_phase3.mp3")
-    };
+        {
+            new DialogueManager.DialogueLine("Công Chúa", "Thạch Sanh, hãy cẩn thận, con Chằn Tinh này rất mạnh!", null, "res://Assets/Audio/Voices/princess_warn.mp3"),
+            new DialogueManager.DialogueLine("Chằn Tinh", "THẠCH SANH!!! Ngươi thật sự đến được tận đây?! Ta phải thừa nhận, ngươi đã hạ được tất cả lính canh của ta. Nhưng đây là sào huyệt của ta, ngươi nghĩ sẽ thoát được sao hahaha!", null, "res://Assets/Audio/Voices/chantinh_intro.mp3"),
+            new DialogueManager.DialogueLine("Thạch Sanh", "Ta đã bước vào đây để cứu người, thì cũng sẵn sàng kết thúc mọi hiểm họa tại đây.", null, "res://Assets/Audio/Voices/ts_boss_phase3.mp3")
+        };
         await dm.PlayDialogue(lines);
     }
 
@@ -485,69 +429,37 @@ public partial class LevelManager : Node2D
     {
         if (_player != null && IsInstanceValid(_player))
         {
-            // 1. Reset vị trí về Checkpoint gần nhất
             Vector2 spawnPos;
-
-            // ĐIỀU KIỆN RIÊNG LEVEL 3: Nếu đang đánh Boss thì hồi sinh ở đầu đấu trường
             if (LevelNumber == 3 && _bossFightStarted)
             {
-                // Respawn ở 2450 (Rộng rãi hơn, cách tường trái 100px)
                 spawnPos = new Vector2(2450, 580);
-                GD.Print("Level 3 Special Respawn: Returning to Arena Entrance.");
-
-                // RESET BOSS: Đưa boss về lại vị trí đầu để không đứng đè lên người chơi
-                if (_boss != null && IsInstanceValid(_boss) && _boss is ChanTinh chantinh)
-                {
-                    chantinh.ResetBoss(new Vector2(3300, 520));
-                }
+                if (_boss != null && IsInstanceValid(_boss) && _boss is ChanTinh chantinh) chantinh.ResetBoss(new Vector2(3300, 520));
             }
             else
             {
                 int checkpointIndex = GameManager.Instance.CurrentCheckpointIndex;
-                spawnPos = _checkpoints.Count > checkpointIndex
-                    ? _checkpoints[checkpointIndex]
-                    : (_spawnPoint?.GlobalPosition ?? Vector2.Zero);
+                spawnPos = _checkpoints.Count > checkpointIndex ? _checkpoints[checkpointIndex] : (_spawnPoint?.GlobalPosition ?? Vector2.Zero);
             }
-
             _player.GlobalPosition = spawnPos;
-
-            // 2. Reset trạng thái nhân vật (Máu, sống lại) thông qua call method trong Player.cs
             _player.Call("FastReset");
-            // Double-check: give a brief invulnerability window from level manager as well.
-            if (_player.HasMethod("StartInvulnerability"))
-            {
-                _player.Call("StartInvulnerability", 1.0f);
-            }
-
-            GD.Print("Đã hồi sinh nhanh tại chỗ!");
+            if (_player.HasMethod("StartInvulnerability")) _player.Call("StartInvulnerability", 1.0f);
         }
-        else
-        {
-            // Nếu không tìm thấy player (ví dụ lỡ bị xóa), thì spawn mới
-            SpawnPlayer();
-        }
+        else SpawnPlayer();
     }
 
     private void OnPlayerDied()
     {
         Engine.TimeScale = 1.0f;
         var timer = GetTree().CreateTimer(1.2, true, false, true);
-        timer.Timeout += () =>
-        {
-            if (!IsInstanceValid(this)) return;
-            GameManager.Instance.GameOver();
-        };
+        timer.Timeout += () => { if (IsInstanceValid(this)) GameManager.Instance.GameOver(); };
     }
 
     public override void _Process(double delta)
     {
         if (_player == null || _player.IsQueuedForDeletion()) return;
-
         if (LevelNumber == 3)
         {
             ProcessLevel3Logic();
-
-            // Hiệu ứng khí quyển
             _elapsedTime += delta;
             _lightningTimer += (float)delta;
             if (_lightningTimer >= _nextLightningTime)
@@ -556,8 +468,6 @@ public partial class LevelManager : Node2D
                 _nextLightningTime = (float)GD.RandRange(5.0, 15.0);
                 TriggerLightning();
             }
-
-            // Sương mù trôi nhẹ
             foreach (var fog in _fogLayers)
             {
                 if (!IsInstanceValid(fog)) continue;
@@ -566,7 +476,6 @@ public partial class LevelManager : Node2D
                 fog.Color = new Color(c.R, c.G, c.B, Mathf.Clamp(c.A + shift * (float)delta, 0.05f, 0.4f));
             }
         }
-
         for (int i = GameManager.Instance.CurrentCheckpointIndex + 1; i < _checkpoints.Count; i++)
         {
             if (Mathf.Abs(_player.GlobalPosition.X - _checkpoints[i].X) < 60f)
@@ -575,5 +484,17 @@ public partial class LevelManager : Node2D
                 break;
             }
         }
+    }
+
+    private void InitializeEnemyCount()
+    {
+        var enemies = GetTree().GetNodesInGroup("enemies");
+        int count = 0;
+        foreach (Node node in enemies)
+        {
+            if (node is BaseEnemy enemy && !enemy.IsDead) count++;
+            else if (node is IsometricSnake snake && !snake.IsDead) count++;
+        }
+        GameManager.Instance.ResetEnemyCount(count);
     }
 }

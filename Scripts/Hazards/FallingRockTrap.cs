@@ -72,7 +72,7 @@ public partial class FallingRockTrap : Node2D
 
     private void OnTrigger(Node2D body)
     {
-        if (body is Player && !_isFalling)
+        if ((body.IsInGroup("player") || body is Player || body is IsometricPlayer) && !_isFalling)
         {
             _isFalling = true;
             _triggerArea.QueueFree(); // Trigger một lần
@@ -90,10 +90,10 @@ public partial class FallingRockTrap : Node2D
 
     private void OnHitPlayer(Node2D body)
     {
-        if (body is Player player && _isFalling && !_hasHit)
+        if ((body.IsInGroup("player") || body is Player || body is IsometricPlayer) && _isFalling && !_hasHit)
         {
             _hasHit = true;
-            player.TakeDamage(Damage);
+            body.Call("TakeDamage", Damage);
             Shatter();
         }
     }
