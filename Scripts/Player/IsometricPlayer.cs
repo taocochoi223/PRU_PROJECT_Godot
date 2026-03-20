@@ -21,6 +21,7 @@ public partial class IsometricPlayer : CharacterBody2D
     private float _z = 0f;
     private float _vz = 0f;
     private bool _isJumping = false;
+    private bool _hasDoubleJumped = false;
     private bool _isFalling = false;
     private bool _isDead = false;
     private int _health;
@@ -375,10 +376,19 @@ public partial class IsometricPlayer : CharacterBody2D
     // ═══════════════════════════════════════════════════════════
     private void HandleJump(float dt)
     {
-        if (Input.IsActionJustPressed("jump") && !_isJumping)
+        if (Input.IsActionJustPressed("jump"))
         {
-            _vz = JumpForce;
-            _isJumping = true;
+            if (!_isJumping)
+            {
+                _vz = JumpForce;
+                _isJumping = true;
+                _hasDoubleJumped = false;
+            }
+            else if (!_hasDoubleJumped)
+            {
+                _vz = JumpForce * 1.25f; // Nhảy đúp cao hơn
+                _hasDoubleJumped = true;
+            }
         }
 
         if (_isJumping)
@@ -391,6 +401,7 @@ public partial class IsometricPlayer : CharacterBody2D
                 _z = 0;
                 _vz = 0;
                 _isJumping = false;
+                _hasDoubleJumped = false;
             }
         }
     }

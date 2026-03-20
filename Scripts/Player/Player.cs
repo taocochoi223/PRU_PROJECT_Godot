@@ -211,7 +211,7 @@ public partial class Player : CharacterBody2D
             // Ưu tiên 2: Nhảy đúp (Double Jump) khi đang ở trên không
             else if (!_hasDoubleJumped && !onFloor)
             {
-                velocity.Y = JumpVelocity * 0.95f;
+                velocity.Y = JumpVelocity * 1.25f; // Nhảy đúp cao hơn lần nhảy đầu tiên
                 _jumpBufferTimer = 0;
                 _hasDoubleJumped = true;
                 _isJumping = true;
