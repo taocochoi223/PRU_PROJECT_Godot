@@ -61,6 +61,9 @@ public partial class Level1Builder : Node2D
         BuildCheckpoints();
         BuildForestTrees();
         BuildCaveEntrance();
+        
+        // Cập nhật: Áp dụng làm mờ cho các cây tĩnh được đặt thủ công trong Scene
+        ApplyTransparencyToStaticTrees();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -653,29 +656,60 @@ public partial class Level1Builder : Node2D
                 (float)_rng.NextDouble() * (MAP_H - 150) + 75
             );
 
-            // KIỂM TRA TRÙNG LẶP: Không trồng cây lên đường mòn, hồ nước, hoặc hố bẫy
-            if (IsPositionBlocked(pos)) continue;
-
             // Tỷ lệ xuất hiện: 50% Cây cổ thụ, 30% Cây Chuối, 20% Cây Dừa
             double dice = _rng.NextDouble();
             Texture2D tex = _texTreePixel;
             float scale = 1.0f;
+            string typePrefix = "Tree";
 
             if (dice < 0.5) {
                 tex = _texTreePixel;
                 scale = 0.8f + (float)_rng.NextDouble() * 0.5f;
+                typePrefix = "AncientTree";
             }
             else if (dice < 0.8) {
                 tex = _texBanana;
                 scale = 0.6f + (float)_rng.NextDouble() * 0.4f;
+                typePrefix = "BananaTree";
             }
             else {
                 tex = _texPalm;
                 scale = 0.9f + (float)_rng.NextDouble() * 0.4f;
+                typePrefix = "PalmTree";
             }
+            
+            // XÍCH TRÁNH ĐƯỜNG: Kiểm tra trùng lặp
+            if (IsPositionBlocked(pos)) continue;
 
-            CreateTreeItem(treeParent, pos, tex, scale);
+            var tree = CreateTreeItem(treeParent, pos, tex, scale);
+            tree.Name = $"{typePrefix}_{plantedCount}";
             plantedCount++;
+        }
+    }
+
+    /// <summary>
+    /// Tìm và áp dụng hiệu ứng làm mờ cho các cây được đặt thủ công trong Level 1 root
+    /// </summary>
+    private void ApplyTransparencyToStaticTrees()
+    {
+        var root = GetParent();
+        if (root == null) return;
+
+        foreach (var child in root.GetChildren())
+        {
+            if (child is Sprite2D sprite && sprite.GetNodeOrNull("DetectionArea") == null)
+            {
+                string name = sprite.Name.ToString().ToLower();
+                // Kiểm tra tên hoặc texture để xác định đó là cây
+                bool isTree = name.Contains("tree") || name.Contains("palm") || name.Contains("banana") || name.Contains("ancient");
+                
+                if (isTree)
+                {
+                    // Ước lượng scale từ scale hiện tại của sprite
+                    float avgScale = (sprite.Scale.X + sprite.Scale.Y) / 2.0f;
+                    SetupTransparencyForTree(sprite, avgScale);
+                }
+            }
         }
     }
 
@@ -713,9 +747,9 @@ public partial class Level1Builder : Node2D
         return false;
     }
 
-    private void CreateTreeItem(Node2D parent, Vector2 pos, Texture2D tex, float scale)
+    private Sprite2D CreateTreeItem(Node2D parent, Vector2 pos, Texture2D tex, float scale)
     {
-        if (tex == null) return;
+        if (tex == null) return null;
         
         var tree = new Sprite2D();
         tree.Texture = tex;
@@ -738,31 +772,56 @@ public partial class Level1Builder : Node2D
         // Gán Owner để cây hiển thị trên bảng Scene của Editor
         tree.Owner = GetTree().EditedSceneRoot;
 
+        SetupTransparencyForTree(tree, scale);
+        return tree;
+    }
+
+    /// <summary>
+    /// Thiết lập vùng nhận diện và logic làm mờ cho một Sprite cây
+    /// </summary>
+    private void SetupTransparencyForTree(Sprite2D tree, float scale)
+    {
         // THÊM VÙNG NHẬN DIỆN LÀM MỜ (Detection Area)
         var area = new Area2D();
+        area.Name = "DetectionArea";
         area.CollisionLayer = 0;
         area.CollisionMask = 1; // Nhận diện Player (Layer 1)
         
         var col = new CollisionShape2D();
-        var shape = new CircleShape2D();
-        shape.Radius = 60 * scale; // Vùng mờ tùy theo kích thước cây
+        
+        // Lấy kích thước thực tế của Texture để tạo vùng nhận diện bao phủ toàn bộ cây
+        Vector2 texSize = new Vector2(128, 128); // Mặc định nếu không lấy được texture
+        if (tree.Texture != null)
+        {
+            texSize = tree.Texture.GetSize();
+        }
+
+        var shape = new RectangleShape2D();
+        // Thu nhỏ vùng nhận diện lại một chút (75% chiều rộng, 90% chiều cao) 
+        // để tránh việc mờ quá sớm khi mới chạm vào khoảng trống của file PNG
+        shape.Size = new Vector2(texSize.X * 0.75f, texSize.Y * 0.9f) * scale;
         col.Shape = shape;
-        col.Position = new Vector2(0, -50); // Đặt ở phần tán cây
+
+        // Căn chỉnh vị trí vùng nhận diện khớp với hình ảnh cây (dựa trên Offset của Sprite)
+        col.Position = tree.Offset * scale;
         
         area.AddChild(col);
         tree.AddChild(area);
 
+        // Debug: Vẽ vùng nhận diện nếu cần (có thể bật trong Editor)
+        // area.ZIndex = 100;
+
         // Kết nối sự kiện làm mờ
         area.BodyEntered += (body) => {
-            if (body is IsometricPlayer) {
+            if (body.IsInGroup("player") || body is IsometricPlayer || body is CharacterBody2D) {
                 var tw = tree.CreateTween();
-                tw.TweenProperty(tree, "modulate:a", 0.3f, 0.25f);
+                tw.TweenProperty(tree, "modulate:a", 0.35f, 0.2f);
             }
         };
         area.BodyExited += (body) => {
-            if (body is IsometricPlayer) {
+            if (body.IsInGroup("player") || body is IsometricPlayer || body is CharacterBody2D) {
                 var tw = tree.CreateTween();
-                tw.TweenProperty(tree, "modulate:a", 1.0f, 0.25f);
+                tw.TweenProperty(tree, "modulate:a", 1.0f, 0.2f);
             }
         };
     }

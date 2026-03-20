@@ -76,8 +76,17 @@ public partial class IsometricSnake : CharacterBody2D
             else if (dist <= AttackRange)
             {
                 // Attack
-                Velocity = Vector2.Zero;
-                if (_canAttack) Attack();
+                if (dist < 35.0f) // Nếu quá gần (dính người), lùi lại một chút
+                {
+                    Vector2 repulsionDir = (GlobalPosition - _target.GlobalPosition).Normalized();
+                    Velocity = repulsionDir * Speed * 0.6f;
+                    PlayAnimSafe("walk");
+                }
+                else
+                {
+                    Velocity = Vector2.Zero;
+                    if (_canAttack) Attack();
+                }
             }
             else
             {

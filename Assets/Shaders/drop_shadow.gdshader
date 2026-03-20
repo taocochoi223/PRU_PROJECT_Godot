@@ -10,6 +10,6 @@ void fragment() {
     shadow.rgb = shadow_color.rgb;
     shadow.a *= shadow_color.a;
     
-    // Simple mixing: shadow behind the sprite
-    COLOR = mix(shadow, col, col.a);
+    // Mix shadow and texture, then multiply by vertex color (modulate/fade)
+    COLOR = mix(shadow, col, col.a) * COLOR;
 }
