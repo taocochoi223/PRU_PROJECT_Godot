@@ -187,6 +187,7 @@ public partial class GameManager : Node
     {
         if (level > _levelPaths.Length) { WinGame(); return; }
         CurrentLevel = level;
+        GD.Print($"[GameManager] Loading Level: {level} -> {_levelPaths[level-1]}");
         ChangeSceneWithTransition(_levelPaths[level - 1], true);
     }
     public void RestartLevel()

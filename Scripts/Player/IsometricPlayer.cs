@@ -41,6 +41,8 @@ public partial class IsometricPlayer : CharacterBody2D
     private bool _comboActive = false;
     private string _currentAttackAnimation = "attack";
 
+    private Node2D _lastFadedObject = null;
+
     [Signal] public delegate void HealthChangedEventHandler(int newHealth, int maxHealth);
     [Signal] public delegate void PlayerDiedEventHandler();
 
@@ -68,6 +70,13 @@ public partial class IsometricPlayer : CharacterBody2D
             _shadow = GetNode<Node2D>("Shadow");
 
         AddToGroup("player");
+
+        var cam = GetNodeOrNull<Camera2D>("Camera2D");
+        if (cam != null)
+        {
+            cam.MakeCurrent();
+            cam.AddToGroup("MainCamera");
+        }
 
         // Dedicated player for slash SFX so attack audio works even without scene audio nodes.
         _attackSfxPlayer = new AudioStreamPlayer2D();

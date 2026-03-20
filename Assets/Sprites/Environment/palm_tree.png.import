@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://6osoivdvcth1"
-path="res://.godot/imported/Cave_door.png-2c8380ff1622ad49e293baa09b79a333.ctex"
+uid="uid://qofl24egiq4o"
+path="res://.godot/imported/palm_tree.png-1a18fbd23532a221b3607c18d37862b6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Sprites/Backgrounds/Cave_door.png"
-dest_files=["res://.godot/imported/Cave_door.png-2c8380ff1622ad49e293baa09b79a333.ctex"]
+source_file="res://Assets/Sprites/Environment/palm_tree.png"
+dest_files=["res://.godot/imported/palm_tree.png-1a18fbd23532a221b3607c18d37862b6.ctex"]
 
 [params]
 
