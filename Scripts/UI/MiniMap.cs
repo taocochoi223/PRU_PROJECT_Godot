@@ -22,32 +22,30 @@ public partial class MiniMap : Control
         // Đảm bảo PlayerMarker luôn nằm trên cùng
         _playerDot.ZIndex = 10;
 
-        // Tính toán tỉ lệ (MAP_W = 4800, MAP_H = 1200)
-        _scaleX = _mapContent.Size.X / 4800f;
+        // Tính toán tỉ lệ (MAP_W = 4000, MAP_H = 1200)
+        _scaleX = _mapContent.Size.X / 4000f;
         _scaleY = _mapContent.Size.Y / 1200f;
 
         // Vẽ phác thảo đường đi đơn giản lên minimap
-        DrawSimplePath();
+        DrawCaveMiniMap();
     }
 
-    private void DrawSimplePath()
+    private void DrawCaveMiniMap()
     {
-        // 1. Vẽ nền rừng (Màu xanh rừng tối, bo góc)
-        var forestBase = new ColorRect();
-        forestBase.Color = new Color(0.1f, 0.2f, 0.1f, 0.85f);
-        forestBase.Size = _mapContent.Size;
-        _mapContent.AddChild(forestBase);
+        // 1. Vẽ nền hang động (Màu xám-xanh tối)
+        var caveBase = new ColorRect();
+        caveBase.Color = new Color(0.05f, 0.05f, 0.08f, 0.9f);
+        caveBase.Size = _mapContent.Size;
+        _mapContent.AddChild(caveBase);
 
-        // 2. Vẽ Đường mòn (Vệt sáng nghệ thuật)
+        // 2. Vẽ Đường mòn (Vệt sáng xanh nhạt)
         Vector2[] pathPoints = {
-            new(100, 600), new(400, 550), new(700, 500), new(1000, 550),
-            new(1300, 600), new(1600, 500), new(1900, 450), new(2200, 500),
-            new(2500, 550), new(2800, 500), new(3100, 450), new(3400, 500),
-            new(3700, 550), new(4000, 500), new(4300, 500), new(4600, 550)
+            new(100, 500), new(600, 450), new(1200, 700), new(1800, 300), 
+            new(2400, 600), new(3000, 400), new(3500, 700), new(3900, 500)
         };
         var pathLine = new Line2D();
-        pathLine.DefaultColor = new Color(0.8f, 0.7f, 0.4f, 0.4f);
-        pathLine.Width = 3f;
+        pathLine.DefaultColor = new Color(0.4f, 0.4f, 1.0f, 0.3f);
+        pathLine.Width = 4f;
         pathLine.BeginCapMode = Line2D.LineCapMode.Round;
         pathLine.EndCapMode = Line2D.LineCapMode.Round;
         foreach (var p in pathPoints) {
@@ -55,26 +53,28 @@ public partial class MiniMap : Control
         }
         _mapContent.AddChild(pathLine);
 
-        // 3. Vẽ Vũng nước (Xanh lơ)
-        Vector2[] ponds = { new(1400, 350), new(2600, 750), new(800, 200), new(3200, 900) };
-        foreach (var p in ponds) AddMarker(p, new Color(0.3f, 0.6f, 1.0f, 0.7f), new Vector2(12, 6));
+        // 3. Tinh thể pha lê (Xanh cyan sáng)
+        Vector2[] crystals = { 
+            new(1100, 650), new(1300, 750), new(1750, 250), new(1850, 350),
+            new(2950, 450), new(3050, 350), new(3450, 650), new(3550, 750)
+        };
+        foreach (var p in crystals) AddMarker(p, new Color(0.2f, 0.8f, 1.0f, 0.6f), new Vector2(4, 4));
 
-        // 4. Vẽ Hố sâu (Đen huyền bí)
-        Vector2[] pits = { new(1200, 600), new(2500, 850), new(3800, 400), new(1800, 300), new(1800, 500) };
-        foreach (var p in pits) AddMarker(p, new Color(0, 0, 0, 0.9f), new Vector2(8, 4));
+        // 4. Bẫy chông/hố sâu (Màu đỏ cảnh báo)
+        Vector2[] hazards = { 
+            new(1500, 500), new(2100, 450), new(2700, 550), new(3300, 500),
+            new(800, 550), new(2300, 300), new(3700, 600)
+        };
+        foreach (var p in hazards) AddMarker(p, new Color(1.0f, 0.2f, 0.2f, 0.8f), new Vector2(5, 5));
 
-        // 5. Đá & Vật cản (Xám bạc)
-        Vector2[] rocks = { new(350, 300), new(900, 750), new(1600, 200), new(2100, 850), new(2900, 300), new(3600, 800) };
-        foreach (var p in rocks) AddMarker(p, new Color(0.7f, 0.7f, 0.8f, 0.8f), new Vector2(4, 4));
-
-        // 6. CỔNG HANG (Điểm đến cuối cùng - Biểu tượng đặc biệt)
-        AddMarker(new Vector2(4500, 500), new Color(1.0f, 0.8f, 0.2f, 1.0f), new Vector2(10, 10)); // Ô vuông màu vàng sáng
-        var caveLabel = new Label();
-        caveLabel.Text = "EXIT";
-        caveLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        caveLabel.Scale = new Vector2(0.35f, 0.35f);
-        caveLabel.Position = new Vector2(4480 * _scaleX, 480 * _scaleY);
-        _mapContent.AddChild(caveLabel);
+        // 5. CỔNG RA (Điểm đến cuối cùng)
+        AddMarker(new Vector2(3850, 500), new Color(1.0f, 0.9f, 0.2f, 1.0f), new Vector2(12, 12));
+        var exitLabel = new Label();
+        exitLabel.Text = "EXIT";
+        exitLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        exitLabel.Scale = new Vector2(0.4f, 0.4f);
+        exitLabel.Position = new Vector2(3830 * _scaleX, 470 * _scaleY);
+        _mapContent.AddChild(exitLabel);
     }
 
     private void AddMarker(Vector2 worldPos, Color color, Vector2 size)

@@ -17,6 +17,6 @@ shape = SubResource("RectangleShape2D_door")
 
 [node name="DoorVisual" type="Sprite2D" parent="." unique_id=1531610129]
 texture_filter = 1
-position = Vector2(164.00002, -27.000004)
+position = Vector2(147, -48.999996)
 scale = Vector2(1.6466361, 1.4919335)
 texture = ExtResource("2")
