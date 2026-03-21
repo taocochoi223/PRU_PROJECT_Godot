@@ -27,6 +27,7 @@ public partial class IsometricPlayer : CharacterBody2D
     private int _health;
     private bool _canAttack = true;
     private bool _isAttacking = false;
+    private bool _isHurt = false;
     private bool _isInvulnerable = false;
 
     private AnimatedSprite2D _animatedSprite;
@@ -34,6 +35,7 @@ public partial class IsometricPlayer : CharacterBody2D
     private Vector2 _facingDirection = Vector2.Down;
     private Timer _attackCooldownTimer;
     private Timer _invulnTimer;
+    private Timer _hurtTimer;
     private AudioStreamPlayer2D _attackSfxPlayer;
     private Vector2 _baseSpriteScale = Vector2.One;
     private int _comboIndex = 0;
@@ -120,6 +122,13 @@ public partial class IsometricPlayer : CharacterBody2D
         _invulnTimer.OneShot = true;
         _invulnTimer.Timeout += () => { _isInvulnerable = false; Modulate = Colors.White; };
         AddChild(_invulnTimer);
+        
+        // Hurt timer (Hitstun)
+        _hurtTimer = new Timer();
+        _hurtTimer.WaitTime = 0.3f;
+        _hurtTimer.OneShot = true;
+        _hurtTimer.Timeout += () => { _isHurt = false; };
+        AddChild(_hurtTimer);
 
         EmitSignal(SignalName.HealthChanged, _health, MaxHealth);
         
@@ -183,13 +192,17 @@ public partial class IsometricPlayer : CharacterBody2D
 
     private void HandleMovement(float dt)
     {
-        if (_isAttacking || _isSpinning) return;
+        if (_isAttacking || _isHurt) return;
 
         Vector2 inputDir = Input.GetVector("move_left", "move_right", "move_up", "move_down");
+        
+        // GIẢM 50% TỐC ĐỘ DI CHUYỂN KHI ĐANG XOAY (Tăng tính kịch tính và trọng lực đòn đánh)
+        float currentSpeed = _isSpinning ? Speed * 0.5f : Speed;
+
         if (inputDir != Vector2.Zero)
         {
-            Velocity = Velocity.MoveToward(inputDir * Speed, Acceleration * dt);
-            _facingDirection = inputDir;
+            Velocity = Velocity.MoveToward(inputDir * currentSpeed, Acceleration * dt);
+            if (!_isSpinning) _facingDirection = inputDir;
         }
         else
         {
@@ -281,7 +294,9 @@ public partial class IsometricPlayer : CharacterBody2D
         _health -= damage;
         SyncHealthToGameManager();
         _isInvulnerable = true;
+        _isHurt = true;
         _invulnTimer.Start();
+        _hurtTimer.Start();
 
         EmitSignal(SignalName.HealthChanged, _health, MaxHealth);
 
@@ -435,6 +450,15 @@ public partial class IsometricPlayer : CharacterBody2D
 
     private void UpdateAnimation(Vector2 direction)
     {
+        if (_isHurt)
+        {
+            if (_animatedSprite?.SpriteFrames != null && _animatedSprite.SpriteFrames.HasAnimation("hurt"))
+            {
+                if (_animatedSprite.Animation != "hurt") _animatedSprite.Play("hurt");
+                return;
+            }
+        }
+
         if (_isAutoWalking)
         {
             if (_animatedSprite != null && _animatedSprite.SpriteFrames != null && _animatedSprite.SpriteFrames.HasAnimation("run"))
@@ -443,6 +467,8 @@ public partial class IsometricPlayer : CharacterBody2D
                 return;
             }
         }
+
+        if (_isSpinning) return; // Để ExecuteWhirlwind tự quản lý animation khi đang xoay
 
         if (_isAttacking)
         {
@@ -489,7 +515,7 @@ public partial class IsometricPlayer : CharacterBody2D
 
         UpdateSkillUICooldowns();
 
-        if (_isDead || _isFalling || _isAttacking) return;
+        if (_isDead || _isFalling || _isAttacking || _isSpinning || _isHurt) return;
 
         bool press1 = Input.IsActionJustPressed("skill1") || Input.IsKeyPressed(Key.Key1);
         bool press2 = Input.IsActionJustPressed("skill2") || Input.IsKeyPressed(Key.Key2);
@@ -629,13 +655,13 @@ public partial class IsometricPlayer : CharacterBody2D
         spinVFX.Position = new Vector2(0, -30);
         AddChild(spinVFX);
 
-        while (elapsed < duration && IsInstanceValid(this) && !_isDead)
+        while (elapsed < duration && IsInstanceValid(this) && !_isDead && !_isHurt)
         {
             float dt = 0.04f;
             elapsed += dt;
             spinVFX.RotationAngle = elapsed * 25.0f;
             _animatedSprite.FlipH = Mathf.Cos(elapsed * 25.0f) < 0;
-            _animatedSprite.Play("attack1");
+            if (_animatedSprite.Animation != "attack1") _animatedSprite.Play("attack1");
             
             // Deal damage
             var enemies = GetTree().GetNodesInGroup("enemies");

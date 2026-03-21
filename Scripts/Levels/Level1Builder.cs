@@ -473,7 +473,7 @@ public partial class Level1Builder : Node2D
             AddChild(fly);
 
             // Bay lơ lửng
-            var tw = CreateTween();
+            var tw = fly.CreateTween();
             tw.SetLoops();
             float dur = 2f + (float)_rng.NextDouble() * 3f;
             float amp = 10 + (float)_rng.NextDouble() * 30;
@@ -483,7 +483,7 @@ public partial class Level1Builder : Node2D
               .SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
 
             // Nhấp nháy sáng
-            var tw2 = CreateTween();
+            var tw2 = fly.CreateTween();
             tw2.SetLoops();
             float d2 = 0.5f + (float)_rng.NextDouble() * 1.5f;
             tw2.TweenProperty(fly, "modulate:a", 0.2f, d2);
@@ -628,7 +628,7 @@ public partial class Level1Builder : Node2D
             flame.Color = new Color(1f, 0.5f, 0.1f, 0.9f);
             AddChild(flame);
 
-            var tw = CreateTween();
+            var tw = flame.CreateTween();
             tw.SetLoops();
             tw.TweenProperty(flame, "modulate:a", 0.4f, 0.4f);
             tw.TweenProperty(flame, "modulate:a", 1.0f, 0.4f);
@@ -989,7 +989,7 @@ public partial class Level1Builder : Node2D
             firefly.Color = new Color(0.9f, 1.0f, 0.5f, 0.8f);
             cave.AddChild(firefly);
 
-            var tw = CreateTween();
+            var tw = firefly.CreateTween();
             tw.SetLoops();
             float d = (float)GD.RandRange(1.5, 3.0);
             tw.TweenProperty(firefly, "modulate:a", 0.2f, d);

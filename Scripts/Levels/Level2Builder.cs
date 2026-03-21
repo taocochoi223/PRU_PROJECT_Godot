@@ -433,7 +433,7 @@ public partial class Level2Builder : Node2D
         rock.AddChild(sprite);
 
         // Movement & Rolling Animation
-        var tween = CreateTween().SetParallel(true);
+        var tween = rock.CreateTween().SetParallel(true);
         float duration = 3.0f;
 
         tween.TweenProperty(rock, "position:x", targetX, duration);

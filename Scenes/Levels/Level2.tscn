@@ -4,7 +4,6 @@
 [ext_resource type="PackedScene" path="res://Scenes/Player/IsometricPlayer.tscn" id="2"]
 [ext_resource type="Script" path="res://Scripts/Levels/Level2Builder.cs" id="3"]
 [ext_resource type="PackedScene" path="res://Scenes/UI/HUD.tscn" id="4"]
-[ext_resource type="Texture2D" path="res://Assets/Sprites/Environment/light_circle.png" id="5"]
 [ext_resource type="Texture2D" path="res://Assets/Sprites/Environment/rock_pixel.png" id="6"]
 
 [node name="Level2" type="Node2D"]
@@ -28,6 +27,5 @@ script = ExtResource("3")
 position = Vector2(200, 500)
 color = Color(1, 0.6, 0.2, 1)
 energy = 1.3
-texture = ExtResource("5")
 texture_scale = 3.5
 shadow_enabled = false
