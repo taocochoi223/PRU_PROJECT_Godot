@@ -185,7 +185,7 @@ position = Vector2(7707, 2585)
 texture = ExtResource("8_f3nwb")
 
 [node name="RockPixel3" type="Sprite2D" parent="." unique_id=756708118]
-position = Vector2(1888, 973)
+position = Vector2(1831, 868)
 texture = ExtResource("8_f3nwb")
 
 [node name="RockPixel4" type="Sprite2D" parent="." unique_id=1971046450]

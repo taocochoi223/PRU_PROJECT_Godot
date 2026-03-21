@@ -73,6 +73,9 @@ public partial class Level1Builder : Node2D
         var hud = new EnemyStatusHUD();
         AddChild(hud);
         
+        // Cập nhật: Áp dụng va chạm cho các tảng đá được đặt thủ công
+        ApplyCollisionToStaticRocks();
+
         // Cập nhật: Áp dụng làm mờ cho các cây tĩnh được đặt thủ công trong Scene
         ApplyTransparencyToStaticTrees();
     }
@@ -699,29 +702,113 @@ public partial class Level1Builder : Node2D
     }
 
     /// <summary>
-    /// Tìm và áp dụng hiệu ứng làm mờ cho các cây được đặt thủ công trong Level 1 root
+    /// Tìm và áp dụng va chạm (StaticBody2D) và Y-Sort cho các tảng đá được đặt thủ công trong Scene
+    /// </summary>
+    private void ApplyCollisionToStaticRocks()
+    {
+        var root = GetParent();
+        if (root == null) return;
+
+        // Texture của đá để nhận diện
+        var rockTex01 = GD.Load<Texture2D>("res://Assets/Sprites/Environment/rock_pixel.png");
+
+        void ProcessNode(Node node)
+        {
+            if (node is Sprite2D sprite)
+            {
+                string name = sprite.Name.ToString().ToLower();
+                bool isRock = name.Contains("rock") || (sprite.Texture != null && (sprite.Texture == rockTex01 || sprite.Texture.ResourcePath.Contains("rock")));
+
+                if (isRock)
+                {
+                    // 1. Đảm bảo Y-Sort hoạt động đúng
+                    sprite.YSortEnabled = true;
+                    
+                    // Nếu Offset đang là 0 (origin ở tâm), hãy đưa origin xuống chân tảng đá
+                    // Để không làm dịch chuyển đá trong scene, ta cộng Position và trừ Offset
+                    if (sprite.Offset == Vector2.Zero && sprite.Texture != null)
+                    {
+                        Vector2 texSize = sprite.Texture.GetSize();
+                        float halfHeight = texSize.Y / 2.0f;
+                        
+                        // Origin mới ở đáy: Offset di chuyển lên trên halfHeight
+                        // Để sprite không thay đổi vị trí màn hình: Position di chuyển xuống dưới halfHeight * scale
+                        float s = (sprite.Scale.X + sprite.Scale.Y) / 2.0f;
+                        sprite.Offset = new Vector2(0, -halfHeight);
+                        sprite.Position += new Vector2(0, halfHeight * sprite.Scale.Y);
+                    }
+
+                    // 2. Thêm va chạm nếu chưa có
+                    if (sprite.GetNodeOrNull("StaticBody2D") == null)
+                    {
+                        var sb = new StaticBody2D();
+                        sb.Name = "StaticBody2D";
+                        sb.CollisionLayer = 2; // Environment Layer
+                        
+                        var col = new CollisionShape2D();
+                        var shape = new CircleShape2D();
+                        
+                        Vector2 texSize = new Vector2(64, 64);
+                        if (sprite.Texture != null) texSize = sprite.Texture.GetSize();
+                        
+                        float avgScale = (sprite.Scale.X + sprite.Scale.Y) / 2.0f;
+                        // Vùng va chạm chiếm khoảng 70% chiều rộng đáy đá
+                        shape.Radius = (texSize.X * 0.35f) * avgScale;
+                        
+                        col.Shape = shape;
+                        // Vì Origin đã ở đáy (Offset = -H/2), Position của collider sẽ ở cạnh đáy (0,0) hoặc cao hơn tí
+                        col.Position = new Vector2(0, -texSize.Y * 0.1f * avgScale);
+                        
+                        sb.AddChild(col);
+                        sprite.AddChild(sb);
+                        
+                        // 3. Thêm vùng nhận diện làm mờ khi nhân vật đứng sau đá
+                        SetupTransparencyForTree(sprite, avgScale);
+
+                        GD.Print($"Level1Builder: Fixed Rock '{sprite.Name}' - YSort, Collision & Transparency added.");
+                    }
+                }
+            }
+
+            foreach (var child in node.GetChildren())
+            {
+                ProcessNode(child);
+            }
+        }
+
+        ProcessNode(root);
+    }
+
+    /// <summary>
+    /// Tìm và áp dụng hiệu ứng làm mờ cho các cây được đặt thủ công
     /// </summary>
     private void ApplyTransparencyToStaticTrees()
     {
         var root = GetParent();
         if (root == null) return;
 
-        foreach (var child in root.GetChildren())
+        // Duyệt qua tất cả các node trong scene root
+        void IterateNodes(Node node)
         {
-            if (child is Sprite2D sprite && sprite.GetNodeOrNull("DetectionArea") == null)
+            if (node is Sprite2D sprite && sprite.GetNodeOrNull("DetectionArea") == null)
             {
                 string name = sprite.Name.ToString().ToLower();
-                // Kiểm tra tên hoặc texture để xác định đó là cây
                 bool isTree = name.Contains("tree") || name.Contains("palm") || name.Contains("banana") || name.Contains("ancient");
                 
                 if (isTree)
                 {
-                    // Ước lượng scale từ scale hiện tại của sprite
                     float avgScale = (sprite.Scale.X + sprite.Scale.Y) / 2.0f;
                     SetupTransparencyForTree(sprite, avgScale);
                 }
             }
+
+            foreach (var child in node.GetChildren())
+            {
+                IterateNodes(child);
+            }
         }
+
+        IterateNodes(root);
     }
 
     /// <summary>
@@ -878,13 +965,41 @@ public partial class Level1Builder : Node2D
         };
         cave.AddChild(cliffR);
 
-        // Bóng tối cửa hang
+        // Bóng tối cửa hang (Giảm bớt độ đậm để người chơi dễ nhìn hơn)
         var darkness = new ColorRect();
         darkness.ZIndex = -1;
         darkness.Size = new Vector2(200, 120);
         darkness.Position = new Vector2(10, -60);
-        darkness.Color = new Color(0, 0, 0, 0.95f);
+        darkness.Color = new Color(0.05f, 0.04f, 0.08f, 0.75f); // Tăng độ sáng và thêm chút sắc xanh đen
         cave.AddChild(darkness);
+
+        // Ánh sáng hắt ra từ cửa hang (Glow)
+        var entranceGlow = new ColorRect();
+        entranceGlow.ZIndex = -2;
+        entranceGlow.Size = new Vector2(120, 160);
+        entranceGlow.Position = new Vector2(-20, -80);
+        entranceGlow.Color = new Color(0.2f, 0.3f, 0.5f, 0.4f); // Màu xanh mờ tạo chiều sâu
+        cave.AddChild(entranceGlow);
+        
+        // Thêm vài con đom đóm tụ tập ở cửa hang để chiếu sáng nhẹ
+        for (int i = 0; i < 5; i++)
+        {
+            var firefly = new ColorRect();
+            firefly.ZIndex = 5;
+            firefly.Size = new Vector2(4, 4);
+            firefly.Position = new Vector2(
+                (float)GD.RandRange(-40, 60),
+                (float)GD.RandRange(-80, 80)
+            );
+            firefly.Color = new Color(0.9f, 1.0f, 0.5f, 0.8f);
+            cave.AddChild(firefly);
+
+            var tw = CreateTween();
+            tw.SetLoops();
+            float d = (float)GD.RandRange(1.5, 3.0);
+            tw.TweenProperty(firefly, "modulate:a", 0.2f, d);
+            tw.TweenProperty(firefly, "modulate:a", 1.0f, d);
+        }
 
         // Highlight viền hang (tạo chiều sâu)
         var rimL = new Polygon2D();
