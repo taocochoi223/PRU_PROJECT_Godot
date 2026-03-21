@@ -339,7 +339,7 @@ public partial class IsometricPlayer : CharacterBody2D
     // ═══════════════════════════════════════════════════════════
     public void FallIntoPit()
     {
-        if (_z > 5.0f || _isFalling) return;
+        if (_z > 5.0f || _isFalling || _isDead) return;
 
         _isFalling = true;
         Velocity = Vector2.Zero;
@@ -352,9 +352,11 @@ public partial class IsometricPlayer : CharacterBody2D
 
         tw.Chain().TweenCallback(Callable.From(() =>
         {
-            GlobalPosition = new Vector2(200, 600);
-            ResetState();
-            TakeDamage(25); // Mất 25 HP khi rơi hố
+            // Thay vì hồi sinh với 1 ít sát thương, chúng ta cho nhân vật chết luôn
+            _health = 0;
+            SyncHealthToGameManager();
+            EmitSignal(SignalName.HealthChanged, _health, MaxHealth);
+            Die();
         }));
     }
 
