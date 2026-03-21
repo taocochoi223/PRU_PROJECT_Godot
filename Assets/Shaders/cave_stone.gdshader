@@ -46,25 +46,17 @@ void fragment() {
         }
     }
 
-    // ── Bảng màu đá xám-nâu (hang núi) ──
-    vec3 base  = vec3(0.40, 0.35, 0.28);  // Đá xám nâu trung tính
-    vec3 light = vec3(0.54, 0.48, 0.38);  // Mặt đá sáng (phản quang)
-    vec3 dark  = vec3(0.24, 0.20, 0.15);  // Đá tối (bóng sâu)
-    vec3 crack = vec3(0.10, 0.08, 0.05);  // Kẽ nứt / viền
+    // ── Bảng màu đá xám-nâu sạch hơn ──
+    vec3 base  = vec3(0.42, 0.38, 0.32);  // Đá sáng hơn chút
+    vec3 light = vec3(0.50, 0.45, 0.38);  
+    vec3 dark  = vec3(0.32, 0.28, 0.22);  
+    vec3 crack = vec3(0.20, 0.18, 0.15);  // Viền mờ hơn
 
-    vec3 col = mix(dark, mix(base, light, cell_val), cell_val * 0.65 + 0.28);
+    vec3 col = mix(dark, mix(base, light, cell_val), cell_val * 0.5 + 0.3);
 
-    // Kẽ nứt dọc viền ô
-    float border = smoothstep(0.04, 0.13, min_d);
+    // Kẽ nứt viền ô (Làm rộng và mờ hơn để không bị đốm)
+    float border = smoothstep(0.02, 0.25, min_d);
     col = mix(crack, col, border);
-
-    // Vết nứt phụ mỏng (chi tiết thứ cấp)
-    float crack2 = min_d2 - min_d;
-    col = mix(col * 0.6, col, smoothstep(0.0, 0.05, crack2));
-
-    // Vân ẩm ướt nhẹ (hang đá thường ẩm)
-    float moisture = hash2(floor(world_pos / 8.0) * vec2(3.3, 7.7));
-    col = mix(col, col * vec3(0.8, 0.9, 1.0), moisture * 0.15);
 
     COLOR = vec4(col, 1.0);
 }

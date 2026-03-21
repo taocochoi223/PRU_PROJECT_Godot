@@ -47,8 +47,8 @@ public partial class ChanTinh : BaseEnemy
         MoveSpeed = 70f;         // Tăng nhẹ từ 65f
         ScoreValue = 5000;
 
-        DetectRange = 900f;
-        AttackRange = 180f;
+        DetectRange = 1200f; // Tăng tầm phát hiện
+        AttackRange = 300f;  // Tăng tầm đánh cho Boss khổng lồ
         AttackCooldown = 1.0f;   // Giảm từ 1.2s xuống 1.0s (tấn công dồn dập hơn)
 
         // Health Bar offset cho nửa màn hình
@@ -68,7 +68,7 @@ public partial class ChanTinh : BaseEnemy
 
         // Scale 0.6: sprite 500px * 0.6 = 300px hiển thị ≈ nửa màn hình 648px
         Scale = new Vector2(0.6f, 0.6f);
-        ZIndex = 4000;
+        ZIndex = 5; // Giảm xuống để Y-sort hoạt động tốt hơn
 
         if (_healthBarNode != null)
         {
@@ -140,9 +140,10 @@ public partial class ChanTinh : BaseEnemy
             }
             else
             {
-                _bossState = BossState.Cooldown;
-                _stateTimer = 0.5f;
-            }
+            _bossState = BossState.Cooldown;
+            _stateTimer = 0.5f;
+            GD.Print($"[ChanTinh] State forced to Cooldown after hit. Next state in 0.5s");
+        }
 
             // Một chút delay để đảm bảo thoát khỏi trạng thái Hurt của BaseEnemy rồi mới Play lại Idle
             var timer = GetTree().CreateTimer(0.4f);
@@ -205,11 +206,12 @@ public partial class ChanTinh : BaseEnemy
 
     private void ProcessIdleState()
     {
-        AnimSprite.Play("idle");
+        if (AnimSprite.Animation != "idle") AnimSprite.Play("idle");
         Velocity = new Vector2(0, Velocity.Y);
 
         if (FindTargetPlayer())
         {
+            GD.Print("[ChanTinh] Player detected, switching to Chase.");
             _bossState = BossState.Chase;
         }
     }
@@ -235,14 +237,26 @@ public partial class ChanTinh : BaseEnemy
 
         if (dist <= AttackRange)
         {
-            Velocity = new Vector2(0, Velocity.Y);
+            Velocity = Vector2.Zero;
             StartTelegraph();
         }
         else
         {
-            Velocity = new Vector2(dir * MoveSpeed, Velocity.Y);
+            // Trong Isometric (Level 2), đuổi theo 2D (X, Y)
+            if (GameManager.Instance.CurrentLevel == 2)
+            {
+                Vector2 dirVec = (TargetPlayer.GlobalPosition - GlobalPosition).Normalized();
+                Velocity = dirVec * MoveSpeed;
+                SetFacingDirection(dirVec.X < 0);
+            }
+            else
+            {
+                // Side-scroller (Level 3), đuổi theo chiều X
+                dir = TargetPlayer.GlobalPosition.X > GlobalPosition.X ? 1f : -1f;
+                Velocity = new Vector2(dir * MoveSpeed, Velocity.Y);
+                SetFacingDirection(dir < 0);
+            }
             AnimSprite.Play("run");
-            SetFacingDirection(dir < 0);
         }
     }
 
@@ -505,13 +519,40 @@ public partial class ChanTinh : BaseEnemy
         bool facingLeft = AnimSprite.FlipH;
         bool playerLeft = TargetPlayer.GlobalPosition.X < GlobalPosition.X;
 
-        // Chỉ trúng đòn nếu đứng đúng hướng mặt của Boss
-        if (dist <= AttackRange && facingLeft == playerLeft)
+        float effectiveRange = GetCurrentAttackRange();
+
+        // Chỉ trúng đòn nếu đứng đúng hướng mặt của Boss (hoặc các đòn diện rộng)
+        bool isInRange = dist <= effectiveRange;
+        bool isInFront = facingLeft == playerLeft;
+
+        // Các đòn giậm đất hoặc xoay hoặc sấm sét là diện rộng (AOE)
+        bool isAOE = _queuedAttack == "attack_smash" || _queuedAttack == "attack_spin" || 
+                     _queuedAttack == "attack_lightning" || _queuedAttack == "attack_power_up";
+
+        if (isInRange && (isInFront || isAOE))
         {
             if (TargetPlayer.HasMethod("TakeDamage"))
                 TargetPlayer.Call("TakeDamage", AttackDamage);
             _hasHitTarget = true;
-            GD.Print("[ChanTinh] Boss hit player!");
+            GD.Print($"[ChanTinh] Boss hit player with {_queuedAttack}! (Range: {effectiveRange})");
+        }
+    }
+
+    private float GetCurrentAttackRange()
+    {
+        switch (_queuedAttack)
+        {
+            case "attack_smash": return 250f;
+            case "attack_lightning": return 350f;
+            case "attack_fire": return 280f;
+            case "attack_energy": return 400f;
+            case "attack_jump": return 220f;
+            case "attack_spin": return 200f;
+            case "attack_throw": return 500f;
+            case "attack_chem": return 200f;
+            case "attack_ngang": return 220f;
+            case "attack_tren": return 200f;
+            default: return AttackRange; // 180f mặc định
         }
     }
 
@@ -540,8 +581,9 @@ public partial class ChanTinh : BaseEnemy
         var players = GetTree().GetNodesInGroup("player");
         if (players.Count > 0)
         {
-            TargetPlayer = players[0] as Player;
-            return true;
+            // Fix: Sử dụng Node2D thay vì Player vì Level 2 dùng IsometricPlayer
+            TargetPlayer = players[0] as Node2D;
+            return TargetPlayer != null;
         }
         return false;
     }
@@ -549,7 +591,17 @@ public partial class ChanTinh : BaseEnemy
     private void ApplyGravityAndMove(float dt)
     {
         Vector2 vel = Velocity;
-        if (!IsOnFloor()) vel.Y += Gravity * dt;
+        // Chỉ áp dụng trọng lực ở các màn Side-scroller (Level 1, 3). 
+        // Level 2 là Isometric (giả 2.5D) nên không có trọng lực rơi tự do trên Y.
+        if (GameManager.Instance.CurrentLevel != 2)
+        {
+            if (!IsOnFloor()) vel.Y += Gravity * dt;
+        }
+        else
+        {
+            // Trong Isometric, Velocity.Y được dùng cho di chuyển dọc bản đồ
+        }
+        
         Velocity = vel;
         MoveAndSlide();
     }

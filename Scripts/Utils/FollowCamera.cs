@@ -12,6 +12,8 @@ public partial class FollowCamera : Camera2D
     [Export] public float MaxX = 3000;
     [Export] public float MinY = 0;
     [Export] public float MaxY = 648;
+    [Export] public Vector2 ZoomLevel = new Vector2(1, 1);
+
 
     private float _shakeIntensity = 0f;
     private float _shakeTimer = 0f;
@@ -28,7 +30,10 @@ public partial class FollowCamera : Camera2D
         LimitRight = (int)MaxX;
         LimitTop = (int)MinY;
         LimitBottom = (int)MaxY;
+        
+        Zoom = ZoomLevel;
     }
+
 
     public override void _Process(double delta)
     {
@@ -48,10 +53,15 @@ public partial class FollowCamera : Camera2D
         if (_target != null)
         {
             Vector2 targetPos = _target.GlobalPosition + FollowOffset;
-            targetPos.X = Mathf.Clamp(targetPos.X, MinX, MaxX);
-            targetPos.Y = Mathf.Clamp(targetPos.Y, MinY, MaxY);
+            
+            // Sử dụng trực tiếp các thuộc tính Limit thay vì MinX/MaxX cố định
+            // Điều này cho phép LevelManager thay đổi LimitRight mà Camera vẫn follow được
+            targetPos.X = Mathf.Clamp(targetPos.X, LimitLeft, LimitRight);
+            targetPos.Y = Mathf.Clamp(targetPos.Y, LimitTop, LimitBottom);
+            
             GlobalPosition = GlobalPosition.Lerp(targetPos, SmoothSpeed * dt);
         }
+
 
         // Handle Shake
         if (_shakeTimer > 0)

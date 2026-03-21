@@ -22,6 +22,9 @@ public partial class Level2Builder : Node2D
     private Texture2D _floorTexture = GD.Load<Texture2D>("res://Assets/Sprites/Backgrounds/cave_ground.png");
     private PackedScene _exitScene = GD.Load<PackedScene>("res://Scenes/Objects/LevelExit.tscn");
     private PackedScene _spikeTrapScene = GD.Load<PackedScene>("res://Scenes/Hazards/SpikeHazard.tscn");
+    private PackedScene _snakeScene = GD.Load<PackedScene>("res://Scenes/Enemies/IsometricSnake.tscn");
+    private PackedScene _eagleScene = GD.Load<PackedScene>("res://Scenes/Enemies/Eagle.tscn");
+    private PackedScene _bossScene = GD.Load<PackedScene>("res://Scenes/Enemies/ChanTinh.tscn");
 
     private Random _rng = new Random();
     private Texture2D _lightTexture;
@@ -43,6 +46,7 @@ public partial class Level2Builder : Node2D
         BuildBoundaries();
         BuildObstacles();
         BuildHazards();
+        BuildEnemies();
         BuildExitPortal();
         
         // Ensure PlayerLight in the scene also uses the code-generated texture
@@ -58,9 +62,16 @@ public partial class Level2Builder : Node2D
         BuildRollingRockTraps();
     }
 
+
     private void BuildAtmosphere()
     {
-        // ColorRect was removed because it clashed with CanvasModulate
+        // Thêm nền màu tối đồng nhất để không bị lộ các mảng màu khác khi Camera di chuyển
+        var bg = new ColorRect();
+        bg.Size = new Vector2(MAP_WIDTH + 2000, MAP_HEIGHT + 2000);
+        bg.Position = new Vector2(-1000, -1000);
+        bg.Color = new Color(0.15f, 0.15f, 0.18f); // Màu đá trầm
+        bg.ZIndex = -200; // Dưới cả sàn
+        AddChild(bg);
     }
 
     private void BuildFloorAndPath()
@@ -120,6 +131,7 @@ public partial class Level2Builder : Node2D
         
         // Horizontal Start/End (Layer 2)
         CreateStaticWall(new Vector2(-50, MAP_HEIGHT / 2), new Vector2(100, MAP_HEIGHT)); // Left
+        CreateStaticWall(new Vector2(MAP_WIDTH + 50, MAP_HEIGHT / 2), new Vector2(100, MAP_HEIGHT)); // Right
     }
 
     private void CreateStaticWall(Vector2 pos, Vector2 size)
@@ -140,8 +152,8 @@ public partial class Level2Builder : Node2D
         for (int i = 0; i < 150; i++) 
         {
             float x = i * 28 + (float)_rng.NextDouble() * 10;
-            // Clear spawn area (first 450px) to ensure visibility
-            if (x < 450 || x > MAP_WIDTH - 150) continue; 
+            // Dừng tạo đá ở cửa hang (3850) để không bị "lòi" ra ngoài
+            if (x < 450 || x > 3750) continue; 
             
             // Upper wall Divider (y=310 to 330)
             CreateOccludingWall(new Vector2(x, 310 + (float)_rng.NextDouble() * 20));
@@ -152,25 +164,55 @@ public partial class Level2Builder : Node2D
             CreateOccludingWall(new Vector2(x, 1000 + (float)_rng.NextDouble() * 20));
         }
 
-        // Boundary walls (edge of map)
         for (int i = 0; i < 80; i++)
         {
-            CreateOccludingWall(new Vector2(i * 50, -20));
-            // The bottom wall is already handled in BuildObstacles() at Y=1000
+            float x = i * 50;
+            if (x > 3850) continue; // Dừng tạo đá ở cửa hang
+            CreateOccludingWall(new Vector2(x, -20));
         }
     }
 
     private void CreateOccludingWall(Vector2 pos)
     {
+        // To fix Y-sorting issues where the player is hidden by rocks,
+        // we must ensure walls/rocks are siblings of the Player node under the root Y-sort enabled parent.
         var wallContainer = new Node2D { Position = pos, YSortEnabled = true };
         var sprite = new Sprite2D();
         sprite.Texture = _rockTexture;
-        // Scaled down significantly (0.3 to 0.6) to match player size
+        
+        // RESTORED SCALE: Returning to original larger sizes (0.3 to 0.6)
         float s = 0.3f + (float)_rng.NextDouble() * 0.3f; 
         sprite.Scale = new Vector2(s, s);
         sprite.SelfModulate = new Color(0.7f, 0.7f, 0.75f); // High visibility light grey
         sprite.Offset = new Vector2(0, -sprite.Texture.GetSize().Y / 4); 
         wallContainer.AddChild(sprite);
+
+        // PERFECTED SEE-THROUGH LOGIC: Larger detector and aggressive fade
+        var detector = new Area2D();
+        detector.CollisionLayer = 0;
+        detector.CollisionMask = 1; // Player
+        var dShape = new CollisionShape2D();
+        float texW = sprite.Texture.GetSize().X;
+        float texH = sprite.Texture.GetSize().Y;
+        // Make the detector cover the whole upper half and overlap enough with player
+        var dRect = new RectangleShape2D { Size = new Vector2(texW * s * 1.0f, texH * s * 1.1f) };
+        dShape.Shape = dRect;
+        dShape.Position = new Vector2(0, -texH * s * 0.45f);
+        detector.AddChild(dShape);
+        wallContainer.AddChild(detector);
+
+        detector.BodyEntered += (body) => {
+            if (body.IsInGroup("player") || body is Player || body is IsometricPlayer) {
+                var tw = wallContainer.CreateTween();
+                tw.TweenProperty(sprite, "modulate:a", 0.3f, 0.25f);
+            }
+        };
+        detector.BodyExited += (body) => {
+            if (body.IsInGroup("player") || body is Player || body is IsometricPlayer) {
+                var tw = wallContainer.CreateTween();
+                tw.TweenProperty(sprite, "modulate:a", 1.0f, 0.25f);
+            }
+        };
 
         // Solid Body with Collision Shape
         var blocker = new StaticBody2D();
@@ -178,8 +220,8 @@ public partial class Level2Builder : Node2D
         blocker.CollisionMask = 0; 
 
         var bShape = new CollisionShape2D();
-        // Smaller, more precise collision for the small rocks
-        var bRect = new RectangleShape2D { Size = new Vector2(40 * s, 30 * s) }; 
+        // Collision at the base of the rock
+        var bRect = new RectangleShape2D { Size = new Vector2(50 * s, 30 * s) }; 
         bShape.Shape = bRect;
         blocker.AddChild(bShape);
         wallContainer.AddChild(blocker);
@@ -189,19 +231,76 @@ public partial class Level2Builder : Node2D
 
     private void BuildHazards()
     {
-        for (int i = 0; i < 30; i++)
+        // 1. Random Scattered Hazards
+        for (int i = 0; i < 20; i++)
         {
             Vector2 pos = new Vector2(
                 (float)_rng.NextDouble() * (MAP_WIDTH - 600) + 300,
                 (float)_rng.NextDouble() * (MAP_HEIGHT - 200) + 100
             );
 
-            if (_spikeTrapScene == null) continue;
-            var trap = _spikeTrapScene.Instantiate<Node2D>();
-            trap.Position = pos;
-            trap.Modulate = new Color(0.6f, 0.6f, 0.7f, 0.5f); // Partially hidden
-            AddChild(trap);
+            SpawnSpikeTrap(pos, 0.5f); // Still mostly hidden
         }
+
+        // 2. Strategic Hazards on Branches
+        Vector2[][] branches = GetBranches();
+        foreach (var points in branches)
+        {
+            for (int i = 1; i < points.Length - 1; i++)
+            {
+                // Place a trap between every two path nodes
+                Vector2 mid = (points[i] + points[i+1]) / 2f;
+                SpawnSpikeTrap(mid, 0.9f); // Much more visible on path
+            }
+        }
+    }
+
+    private void SpawnSpikeTrap(Vector2 pos, float alpha)
+    {
+        if (_spikeTrapScene == null) return;
+        var trap = _spikeTrapScene.Instantiate<Node2D>();
+        trap.Position = pos;
+        trap.Modulate = new Color(0.7f, 0.6f, 0.6f, alpha);
+        // Increase damage for Level 2
+        trap.Set("Damage", 35); 
+        // Add to local node
+        AddChild(trap);
+    }
+
+    private void BuildEnemies()
+    {
+        if (_snakeScene == null || _eagleScene == null) return;
+
+        // Sinh lính canh đa dạng cho Màn 2
+        for (int i = 0; i < 12; i++)
+        {
+            Vector2 pos = new Vector2(_rng.Next(400, (int)MAP_WIDTH - 400), _rng.Next(150, (int)MAP_HEIGHT - 150));
+            var snake = _snakeScene.Instantiate<CharacterBody2D>();
+            snake.Position = pos;
+            AddChild(snake);
+        }
+
+        for (int i = 0; i < 8; i++)
+        {
+            Vector2 pos = new Vector2(_rng.Next(600, (int)MAP_WIDTH - 600), _rng.Next(100, (int)MAP_HEIGHT - 300));
+            var eagle = _eagleScene.Instantiate<CharacterBody2D>();
+            eagle.Position = pos;
+            AddChild(eagle);
+        }
+        
+        GD.Print($"[Level2Builder] Restored all guarding enemies ({12} snakes, {8} eagles)");
+    }
+
+    private Vector2[][] GetBranches()
+    {
+        return new Vector2[][] {
+            // Branch 1: North
+            new Vector2[] { new Vector2(100, 500), new Vector2(400, 200), new Vector2(1500, 150), new Vector2(3000, 200), new Vector2(3850, 500) },
+            // Branch 2: Middle
+            new Vector2[] { new Vector2(100, 500), new Vector2(1000, 500), new Vector2(2500, 500), new Vector2(3850, 500) },
+            // Branch 3: South
+            new Vector2[] { new Vector2(100, 500), new Vector2(400, 800), new Vector2(1500, 950), new Vector2(3000, 800), new Vector2(3850, 500) }
+        };
     }
 
     private void BuildRollingRockTraps()
@@ -289,12 +388,44 @@ public partial class Level2Builder : Node2D
     private void BuildExitPortal()
     {
         if (_exitScene == null) return;
-        var exit = _exitScene.Instantiate<Node2D>();
+        var exit = _exitScene.Instantiate<LevelExit>();
         exit.Position = new Vector2(3850, 500);
+        exit.Scale = new Vector2(3.0f, 3.0f); // Phóng to gấp 3 lần để vừa 2 bên đá
+        exit.Name = "LevelExit";
         AddChild(exit);
 
+        // 🏆 Rương báu vật cuối màn (Chỉ xuất hiện khi diệt sạch quái - Giống Màn 1)
+        var chestScene = GD.Load<PackedScene>("res://Scenes/NPCs/TreasureChest.tscn");
+        if (chestScene != null)
+        {
+            var chest = chestScene.Instantiate<TreasureChest>();
+            chest.RequireAllEnemiesDefeated = true;
+            chest.GlobalPosition = new Vector2(3750, 520); // Gần lối ra Map 3
+            
+            // Thêm vào levelBuilder để Y-sort
+            var levelBuilderNode = GetNodeOrNull<Node2D>("LevelBuilder");
+            if (levelBuilderNode != null)
+                levelBuilderNode.AddChild(chest);
+            else
+                AddChild(chest);
+
+            // ÉP BUỘC rương phải ẩn đi ngay lập tức sau khi thêm vào cây (Để tránh lỗi đồng bộ _Ready)
+            chest.Visible = false;
+
+            GD.Print($"[Level2Builder] Spawned fixed reward chest at {chest.GlobalPosition} (Forced Invisible)");
+        }
+
+        // Chặn hướng di chuyển ở cuối map (Phễu dẫn vào Exit) - Chừa khoảng trống ở giữa (Y=500)
+        // for (int i = 0; i < 6; i++)
+        // {
+        //     // Upper funnel wall (Kết thúc ở Y=400)
+        //     CreateOccludingWall(new Vector2(3850, 300 + i * 20));
+        //     // Lower funnel wall (Bắt đầu từ Y=600)
+        //     CreateOccludingWall(new Vector2(3850, 700 - i * 20));
+        // }
+
         var light = new PointLight2D();
-        light.Texture = CreateRadialGradient(300);
+        light.Texture = _lightTexture;
         light.TextureScale = 6.0f;
         light.Color = new Color(0.5f, 0.7f, 1.0f);
         light.Energy = 2.0f;

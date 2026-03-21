@@ -53,8 +53,6 @@ public partial class IsometricPlayer : CharacterBody2D
     private TextureRect[] _skillIcons = new TextureRect[3];
     private TextureRect[] _cooldownOverlays = new TextureRect[3];
     private Label[] _cooldownLabels = new Label[3];
-    private static Rect2I _unifiedSkillBounds = new Rect2I();
-    private static bool _skillBoundsCalculated = false;
     private bool _isSpinning = false;
     private static Texture2D _cachedAxeTexture = null;
     private static Texture2D _cachedPortraitTexture = null;
@@ -240,7 +238,7 @@ public partial class IsometricPlayer : CharacterBody2D
 
     private void DealDamageToNearbyEnemies()
     {
-        float attackRange = 50f;
+        float attackRange = 120f; // Tăng lên 120 để đánh Boss to dễ hơn
         var enemies = GetTree().GetNodesInGroup("enemies");
 
         foreach (var enemy in enemies)
@@ -573,6 +571,13 @@ public partial class IsometricPlayer : CharacterBody2D
         _skill1Timer = Skill1Cooldown;
         _isAttacking = true;
         
+        if (_attackSfxPlayer != null)
+        {
+            _attackSfxPlayer.Stream = SFX.GetAxeThrowSound();
+            _attackSfxPlayer.VolumeDb = 0f;
+            _attackSfxPlayer.Play();
+        }
+
         PrepareAxeTexture();
         var axe = new AxeProjectile();
         axe.Texture = _cachedAxeTexture;
@@ -607,6 +612,13 @@ public partial class IsometricPlayer : CharacterBody2D
         float duration = 3.0f;
         float elapsed = 0f;
         
+        if (_attackSfxPlayer != null)
+        {
+            _attackSfxPlayer.Stream = SFX.GetSpinSound();
+            _attackSfxPlayer.VolumeDb = 2f;
+            _attackSfxPlayer.Play();
+        }
+
         var spinVFX = new SpinVFX();
         spinVFX.Position = new Vector2(0, -30);
         AddChild(spinVFX);
