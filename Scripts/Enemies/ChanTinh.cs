@@ -628,6 +628,17 @@ public partial class ChanTinh : BaseEnemy
 
         GD.Print("[ChanTinh] DIED! Starting epic death sequence...");
 
+        // Hồi 100% máu cho player khi diệt được Boss cuối
+        var playerNode = GetTree().GetFirstNodeInGroup("player") as Node;
+        if (playerNode != null && !playerNode.IsQueuedForDeletion() && playerNode.HasMethod("Heal"))
+        {
+            playerNode.Call("Heal", GameManager.Instance.MaxPlayerHealth);
+            GD.Print("[ChanTinh] Boss died, healing player to FULL (100%)");
+        }
+
+        GameManager.Instance.AddScore(ScoreValue);
+        GameManager.Instance.OnEnemyDefeated();
+
         // --- SỬA LỖI: Tắt ngay lập tức các vùng va chạm để không gây sát thương khi đã chết ---
         if (HasNode("CollisionShape2D"))
             GetNode<CollisionShape2D>("CollisionShape2D").SetDeferred("disabled", true);

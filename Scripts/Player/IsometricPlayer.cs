@@ -339,7 +339,8 @@ public partial class IsometricPlayer : CharacterBody2D
     // ═══════════════════════════════════════════════════════════
     public void FallIntoPit()
     {
-        if (_z > 5.0f || _isFalling || _isDead) return;
+        // Thêm kiểm tra _isInvulnerable để tránh bị chết ngay khi vừa hồi sinh
+        if (_z > 5.0f || _isFalling || _isDead || _isInvulnerable) return;
 
         _isFalling = true;
         Velocity = Vector2.Zero;

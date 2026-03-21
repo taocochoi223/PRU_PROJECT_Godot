@@ -70,10 +70,20 @@ public partial class CaveDoor : Area2D
 
         if (!_isActive)
         {
-            // Dự phòng: Nếu chưa mở rương mà đòi vào
-            _hintLabel.Text = "Cửa hang đã bị khóa!\nHãy mở Rương Báu trước.";
+            // Dự phòng: Nếu chưa mở rương mà đòi vào (Nâng cấp giao diện chữ sang trọng hơn)
+            _hintLabel.Text = "✧ Cửa hang hiện đang bị khóa ✧\n[ Hãy tìm và mở Rương Báu trước ]";
             _hintLabel.Visible = true;
-            _hintLabel.AddThemeColorOverride("font_color", Colors.Orange);
+            
+            // Cố định màu vàng chanh sáng giống rương báu
+            _hintLabel.AddThemeColorOverride("font_color", new Color(1.0f, 1.0f, 0.4f)); 
+            
+            // MẸO: Vì Node cha đang bị Modulate 0.4 (tối), ta dùng SelfModulate trị số cao (>1.0) để ép chữ sáng rực lên
+            _hintLabel.SelfModulate = new Color(2.5f, 2.5f, 2.5f, 1.0f); 
+
+            _hintLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+            _hintLabel.AddThemeConstantOverride("outline_size", 5);
+            _hintLabel.AddThemeFontSizeOverride("font_size", 18);
+            
             return;
         }
 

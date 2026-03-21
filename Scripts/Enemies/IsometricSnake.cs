@@ -191,6 +191,14 @@ public partial class IsometricSnake : CharacterBody2D
         CollisionMask = 0;
         GameManager.Instance.OnEnemyDefeated();
 
+        // Hồi máu cho player khi giết quái (10% Max HP)
+        var player = GetTree().GetFirstNodeInGroup("player") as Node;
+        if (player != null && !player.IsQueuedForDeletion() && player.HasMethod("Heal"))
+        {
+            int healAmount = (int)(GameManager.Instance.MaxPlayerHealth * 0.10f);
+            player.Call("Heal", healAmount);
+        }
+
         var tw = CreateTween();
         tw.TweenProperty(this, "modulate:a", 0f, 1.0f);
         tw.Chain().TweenCallback(Callable.From(() => QueueFree()));

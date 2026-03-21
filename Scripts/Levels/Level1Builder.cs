@@ -65,7 +65,7 @@ public partial class Level1Builder : Node2D
         BuildTreasureChest();
         BuildWorldBounds();
         // Initialize Enemy Counter
-        int totalEnemies = 12 + 1; // 12 snakes + 1 eagle
+        int totalEnemies = 8 + 2; // 8 snakes + 2 eagles
         GameManager.Instance.ResetEnemyCount(totalEnemies);
         
         // Cập nhật: Áp dụng va chạm cho các tảng đá được đặt thủ công
@@ -546,18 +546,14 @@ public partial class Level1Builder : Node2D
     private void BuildEnemySnakes()
     {
         Vector2[] snakePositions = {
-            new(700, 500),    // Zone 1: Rắn canh gác đầu đường
-            new(900, 400),    // THÊM: Zone 1
-            new(1300, 580),   // Zone 2: Rắn gần bẫy gai
-            new(1500, 420),   // THÊM: Zone 2
-            new(1800, 450),   // Zone 2-3: Rắn trên đường mòn
-            new(2100, 600),   // THÊM: Zone 3
-            new(2500, 520),   // Zone 3: Rắn gần suối
-            new(2800, 350),   // THÊM: Zone 3
-            new(3000, 480),   // Zone 4: Rắn canh gác
-            new(3200, 600),   // THÊM: Zone 4
-            new(3400, 540),   // Zone 4: Rắn gần cửa hang
-            new(3800, 500),   // Zone 5: Rắn canh cửa hang
+            new(700, 500),    // Zone 1
+            new(1300, 580),   // Zone 2
+            new(1800, 450),   // Zone 2-3
+            new(2300, 600),   // Zone 3
+            new(2800, 350),   // Zone 3-4
+            new(3200, 550),   // Zone 4
+            new(3600, 480),   // Zone 4-5
+            new(4000, 520),   // Zone 5
         };
 
         var snakeScene = GD.Load<PackedScene>("res://Scenes/Enemies/IsometricSnake.tscn");
@@ -582,7 +578,8 @@ public partial class Level1Builder : Node2D
     private void BuildEnemyEagles()
     {
         Vector2[] eaglePositions = {
-            new(2350, 260),   // Chỉ giữ lại 1 đại bàng ở giữa màn (Zone 3)
+            new(1600, 250),   // Zone 2-3
+            new(3200, 250),   // Zone 4-5
         };
 
         var eagleScene = GD.Load<PackedScene>("res://Scenes/Enemies/Eagle.tscn");

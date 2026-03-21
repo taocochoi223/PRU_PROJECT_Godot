@@ -65,7 +65,7 @@ public partial class IsometricSpikeField : Node2D
                     _inWarnPhase = false;
                     _isUp = true;
                     _wantUp = true;
-                    _hitCollision?.SetDeferred("disabled", false);
+                    if (_hitArea != null) _hitArea.Monitoring = true; // Bật giám sát ngay lập tức
                     Modulate = Colors.White;
                 }
             }
@@ -83,7 +83,7 @@ public partial class IsometricSpikeField : Node2D
                 _timer = 0f;
                 _isUp = false;
                 _wantUp = false;
-                _hitCollision?.SetDeferred("disabled", true);
+                if (_hitArea != null) _hitArea.Monitoring = false; // Tắt giám sát
                 Modulate = Colors.White;
             }
         }
@@ -91,6 +91,22 @@ public partial class IsometricSpikeField : Node2D
         // Animate height
         float target = _wantUp ? SpikeHeight : 0f;
         _currentHeight = Mathf.MoveToward(_currentHeight, target, RiseSpeed * dt);
+
+        // LIÊN TỤC KIỂM TRA SÁT THƯƠNG KHI GAI ĐANG LÊN (Fix lỗi đứng yên không mất máu)
+        if (_isUp && _canDamage && _hitArea != null)
+        {
+            var bodies = _hitArea.GetOverlappingBodies();
+            foreach (var body in bodies)
+            {
+                if (body is IsometricPlayer player)
+                {
+                    player.TakeDamage(Damage);
+                    _canDamage = false;
+                    _damageCooldownTimer.Start();
+                    break;
+                }
+            }
+        }
 
         QueueRedraw();
     }
@@ -164,13 +180,15 @@ public partial class IsometricSpikeField : Node2D
         _hitArea = new Area2D();
         _hitArea.CollisionLayer = 0;
         _hitArea.CollisionMask = 1;
+        _hitArea.Monitoring = false; // Tắt giám sát mặc định
 
         _hitCollision = new CollisionShape2D();
         var shape = new RectangleShape2D();
         float totalW = (SpikeCount - 1) * SpikeSpacing + 16;
-        shape.Size = new Vector2(totalW, 24f);
+        // Tăng Size Y từ 24 lên 64 để bắt trúng nhân vật dễ hơn (dầy gấp đôi)
+        shape.Size = new Vector2(totalW, 64f); 
         _hitCollision.Shape = shape;
-        _hitCollision.Disabled = true;
+        _hitCollision.Disabled = false; // Luôn bật collision, ta dùng Monitoring để kiểm soát
 
         _hitArea.AddChild(_hitCollision);
         _hitArea.BodyEntered += OnBodyEntered;
