@@ -169,7 +169,7 @@ public partial class BaseEnemy : CharacterBody2D
         Vector2 velocity = Velocity;
 
         // Apply gravity
-        bool isIsometric = GameManager.Instance.CurrentLevel == 2;
+        bool isIsometric = GameManager.Instance.CurrentLevel == 2 || GameManager.Instance.CurrentLevel == 3;
         if (!IsOnFloor() && !isIsometric)
         {
             velocity.Y += Gravity * (float)delta;

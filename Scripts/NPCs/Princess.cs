@@ -27,6 +27,7 @@ public partial class Princess : Area2D
         _messageLabel.Text = "Hãy đánh bại hết quái vật!";
         _messageLabel.HorizontalAlignment = HorizontalAlignment.Center;
         _messageLabel.Position = new Vector2(-100, -70);
+        _messageLabel.Scale = new Vector2(1.2f, 1.2f);
         _messageLabel.Visible = false;
         _messageLabel.AddThemeColorOverride("font_color", Colors.Yellow);
         _messageLabel.AddThemeFontSizeOverride("font_size", 14);
@@ -53,7 +54,7 @@ public partial class Princess : Area2D
     private void OnBodyEntered(Node2D body)
     {
         if (_isRescued) return;
-        if (body is not Player) return;
+        if (!body.IsInGroup("player")) return;
 
         if (RequireAllEnemiesDefeated)
         {
@@ -81,6 +82,14 @@ public partial class Princess : Area2D
                 tween.TweenCallback(Callable.From(() => { _messageLabel.Visible = false; }));
                 return;
             }
+        }
+
+        // --- CHIẾN LƯỢC GIẢI CỨU NGHIÊM NGẶT TẠI MÀN 3 ---
+        if (GameManager.Instance.CurrentLevel == 3 && !GameManager.Instance.HasBossKey)
+        {
+            // Nếu là màn 3 mà chưa có chìa khóa, tuyệt đối không cho cứu.
+            // Điều này ngăn chặn việc "lách" qua khe hở của lồng sắt.
+            return;
         }
 
         RescuePrincess();
