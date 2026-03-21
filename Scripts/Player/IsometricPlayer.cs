@@ -461,10 +461,15 @@ public partial class IsometricPlayer : CharacterBody2D
 
         if (_isAutoWalking)
         {
-            if (_animatedSprite != null && _animatedSprite.SpriteFrames != null && _animatedSprite.SpriteFrames.HasAnimation("run"))
+            if (_animatedSprite != null)
             {
-                _animatedSprite.Play("run");
-                return;
+                if (direction.X != 0) _animatedSprite.FlipH = direction.X < 0;
+                
+                if (_animatedSprite.SpriteFrames != null && _animatedSprite.SpriteFrames.HasAnimation("run"))
+                {
+                    if (_animatedSprite.Animation != "run") _animatedSprite.Play("run");
+                    return;
+                }
             }
         }
 

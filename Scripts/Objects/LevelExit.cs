@@ -23,7 +23,8 @@ public partial class LevelExit : Area2D
         // Label gợi ý
         _hintLabel = new Label();
         _hintLabel.Text = "✦ LỐI THOÁT ✦";
-        _hintLabel.Position = new Vector2(-50, -100);
+        _hintLabel.Position = new Vector2(-60, -110);
+        _hintLabel.AddThemeFontSizeOverride("font_size", 12);
         _hintLabel.Visible = false;
         AddChild(_hintLabel);
 
@@ -53,9 +54,12 @@ public partial class LevelExit : Area2D
             if (!_isActive)
             {
                 // Hiện thông báo khóa
-                _hintLabel.Text = "HỐI TIẾC! Cửa hang đã bị khóa ma thuật.\nHãy tìm Rương Báu để lấy Chìa Khóa!";
+                _hintLabel.Text = "✧ HỐI TIẾC! Cửa hang đã bị khóa ✧\n[ Hãy tìm Rương Báu để lấy Chìa Khóa ]";
                 _hintLabel.Visible = true;
                 _hintLabel.AddThemeColorOverride("font_color", Colors.Orange);
+                _hintLabel.AddThemeFontSizeOverride("font_size", 11);
+                _hintLabel.HorizontalAlignment = HorizontalAlignment.Center;
+                _hintLabel.Position = new Vector2(-150, -130);
                 
                 var tw = GetTree().CreateTimer(3.0f);
                 tw.Timeout += () => { if (IsInstanceValid(_hintLabel)) _hintLabel.Visible = false; };
