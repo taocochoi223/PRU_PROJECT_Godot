@@ -400,8 +400,9 @@ public partial class HUD : CanvasLayer
 
         if (_enemyCountLabel != null)
         {
-            int remaining = GameManager.Instance.TotalEnemies - GameManager.Instance.DefeatedEnemies;
-            _enemyCountLabel.Text = $"👹 Quái vật: {remaining} / {GameManager.Instance.TotalEnemies}";
+            // Thay đổi từ đếm ngược (phần còn lại) sang đếm thuận (số lượng đã giết / tổng số)
+            int defeated = GameManager.Instance.DefeatedEnemies;
+            _enemyCountLabel.Text = $"☠ Quái vật: {defeated} / {GameManager.Instance.TotalEnemies}";
             _enemyCountLabel.Visible = GameManager.Instance.TotalEnemies > 0;
         }
     }

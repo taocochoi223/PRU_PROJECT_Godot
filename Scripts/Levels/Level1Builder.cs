@@ -64,14 +64,9 @@ public partial class Level1Builder : Node2D
         BuildMudPits();
         BuildTreasureChest();
         BuildWorldBounds();
-        
         // Initialize Enemy Counter
-        int totalEnemies = 7 + 3; // 7 snakes + 3 eagles from the defined arrays
+        int totalEnemies = 12 + 1; // 12 snakes + 1 eagle
         GameManager.Instance.ResetEnemyCount(totalEnemies);
-        
-        // Add HUD
-        var hud = new EnemyStatusHUD();
-        AddChild(hud);
         
         // Cập nhật: Áp dụng va chạm cho các tảng đá được đặt thủ công
         ApplyCollisionToStaticRocks();
@@ -552,10 +547,15 @@ public partial class Level1Builder : Node2D
     {
         Vector2[] snakePositions = {
             new(700, 500),    // Zone 1: Rắn canh gác đầu đường
+            new(900, 400),    // THÊM: Zone 1
             new(1300, 580),   // Zone 2: Rắn gần bẫy gai
+            new(1500, 420),   // THÊM: Zone 2
             new(1800, 450),   // Zone 2-3: Rắn trên đường mòn
+            new(2100, 600),   // THÊM: Zone 3
             new(2500, 520),   // Zone 3: Rắn gần suối
+            new(2800, 350),   // THÊM: Zone 3
             new(3000, 480),   // Zone 4: Rắn canh gác
+            new(3200, 600),   // THÊM: Zone 4
             new(3400, 540),   // Zone 4: Rắn gần cửa hang
             new(3800, 500),   // Zone 5: Rắn canh cửa hang
         };
@@ -582,9 +582,7 @@ public partial class Level1Builder : Node2D
     private void BuildEnemyEagles()
     {
         Vector2[] eaglePositions = {
-            new(1100, 320),   // Zone 2: mở đầu gặp đại bàng
-            new(2350, 260),   // Zone 3: giữa màn
-            new(3650, 300),   // Zone 4-5: gần cửa hang
+            new(2350, 260),   // Chỉ giữ lại 1 đại bàng ở giữa màn (Zone 3)
         };
 
         var eagleScene = GD.Load<PackedScene>("res://Scenes/Enemies/Eagle.tscn");

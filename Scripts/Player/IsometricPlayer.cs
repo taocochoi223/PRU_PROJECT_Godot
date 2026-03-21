@@ -45,9 +45,12 @@ public partial class IsometricPlayer : CharacterBody2D
     private float _skill1Timer = 0f;
     private float _skill2Timer = 0f;
     private float _skill3Timer = 0f;
-    private const float Skill1Cooldown = 0f;  
-    private const float Skill2Cooldown = 0f; 
-    private const float Skill3Cooldown = 0f; 
+    // private const float Skill1Cooldown = 0f;  
+    // private const float Skill2Cooldown = 0f; 
+    // private const float Skill3Cooldown = 0f; 
+    private const float Skill1Cooldown = 4.0f;  
+    private const float Skill2Cooldown = 10.0f; 
+    private const float Skill3Cooldown = 18.0f; 
 
     private CanvasLayer _skillPanelLayer;
     private TextureRect[] _skillIcons = new TextureRect[3];
