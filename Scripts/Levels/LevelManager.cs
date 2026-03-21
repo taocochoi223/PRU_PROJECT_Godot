@@ -107,23 +107,27 @@ public partial class LevelManager : Node2D
                 var detector = new Area2D();
                 detector.CollisionLayer = 0;
                 detector.CollisionMask = 1; // Player
-                
+
                 var dShape = new CollisionShape2D();
                 // Tăng kích thước detector để đảm bảo luôn thấy nhân vật khi nấp sau đá
-                var dRect = new RectangleShape2D { Size = new Vector2(350, 280) }; 
+                var dRect = new RectangleShape2D { Size = new Vector2(350, 280) };
                 dShape.Shape = dRect;
                 dShape.Position = new Vector2(0, -120);
                 detector.AddChild(dShape);
                 sprite.AddChild(detector);
 
-                detector.BodyEntered += (body) => {
-                    if (body.IsInGroup("player")) {
+                detector.BodyEntered += (body) =>
+                {
+                    if (body.IsInGroup("player"))
+                    {
                         var tw = sprite.CreateTween();
                         tw.TweenProperty(sprite, "modulate:a", 0.3f, 0.25f);
                     }
                 };
-                detector.BodyExited += (body) => {
-                    if (body.IsInGroup("player")) {
+                detector.BodyExited += (body) =>
+                {
+                    if (body.IsInGroup("player"))
+                    {
                         var tw = sprite.CreateTween();
                         tw.TweenProperty(sprite, "modulate:a", 1.0f, 0.25f);
                     }
@@ -159,7 +163,7 @@ public partial class LevelManager : Node2D
             _player = PlayerScene.Instantiate<Node2D>();
             _player.GlobalPosition = spawnPos;
             _player.AddToGroup("player");
-            
+
             // Ưu tiên cho Player vào LevelBuilder để Y-Sort hoạt động thống nhất
             var builder = GetNodeOrNull("LevelBuilder");
             if (builder != null) builder.AddChild(_player);
@@ -260,7 +264,7 @@ public partial class LevelManager : Node2D
         }
 
         // Princess and Cage should be visible from start in Level 3 as per user request
-        if (_princess != null) 
+        if (_princess != null)
         {
             _princess.Visible = true;
             GD.Print("[LevelManager] Force showing Princess");
@@ -284,7 +288,7 @@ public partial class LevelManager : Node2D
             _boss.Visible = false;
             _boss.ProcessMode = ProcessModeEnum.Disabled;
             // Đưa boss lên trời chờ sẵn
-            _boss.GlobalPosition = new Vector2(3300, -500); 
+            _boss.GlobalPosition = new Vector2(3300, -500);
         }
     }
 
@@ -441,7 +445,7 @@ public partial class LevelManager : Node2D
         var lines = new List<DialogueManager.DialogueLine>
         {
             new DialogueManager.DialogueLine("Công Chúa", "Thạch Sanh, hãy cẩn thận, con Chằn Tinh này rất mạnh!", null, "res://Assets/Audio/Voices/princess_warn.mp3"),
-            new DialogueManager.DialogueLine("Chằn Tinh", "THẠCH SANH!!! Ngươi thật sự đến được tận đây?! Ta phải thừa nhận, ngươi đã hạ được tất cả lính canh của ta. Nhưng đây là sào huyệt của ta, ngươi nghĩ sẽ thoát được sao hahaha!", null, "res://Assets/Audio/Voices/chantinh_intro.mp3"),
+            new DialogueManager.DialogueLine("Chằn Tinh", "THẠCH SANH!!! Ngươi thật sự đến được tận đây?! Ta phải thừa nhận, ngươi đã hạ được tất cả lính canh của ta. Nhưng đây là sào huyệt của ta, ngươi nghĩ sẽ thoát được sao!", null, "res://Assets/Audio/Voices/chantinh_intro.mp3"),
             new DialogueManager.DialogueLine("Thạch Sanh", "Ta đã bước vào đây để cứu người, thì cũng sẵn sàng kết thúc mọi hiểm họa tại đây.", null, "res://Assets/Audio/Voices/ts_boss_phase3.mp3")
         };
         await dm.PlayDialogue(lines);
@@ -528,9 +532,9 @@ public partial class LevelManager : Node2D
         _bossFightStarted = true;
 
         // 1. Vị trí đáp xuống trước mặt người chơi
-        Vector2 spawnPos = _player.GlobalPosition + new Vector2(250, 0); 
+        Vector2 spawnPos = _player.GlobalPosition + new Vector2(250, 0);
         // Đảm bảo ở vị trí mặt đất hợp lý cho Isometric Arena
-        spawnPos.Y = 520; 
+        spawnPos.Y = 520;
 
         _boss.GlobalPosition = spawnPos + new Vector2(0, -800);
         _boss.Visible = true;
@@ -540,15 +544,15 @@ public partial class LevelManager : Node2D
         tween.TweenProperty(_boss, "global_position", spawnPos, 0.8f)
              .SetTrans(Tween.TransitionType.Expo)
              .SetEase(Tween.EaseType.In);
-        
+
         await ToSignal(tween, "finished");
 
         // 3. Landed: Shake + FX + Sound
         if (_boss is ChanTinh chantinh) chantinh.ResetBoss(spawnPos);
-        
+
         var cam = GetTree().GetFirstNodeInGroup("MainCamera") as FollowCamera;
         if (cam != null) cam.Shake(1.5f, 25f);
-        
+
         CreateLandVFX(spawnPos);
 
         var sfxPlayer = new AudioStreamPlayer();
@@ -563,7 +567,7 @@ public partial class LevelManager : Node2D
         AddChild(dm);
         var lines = new List<DialogueManager.DialogueLine>
         {
-            new DialogueManager.DialogueLine("Chằn Tinh", "HAHAHA! Ngươi tưởng cứu được công chúa sao? Ta đã đợi ngươi ở đây từ lâu rồi!", null, "res://Assets/Audio/Voices/chantinh_intro.mp3")
+            new DialogueManager.DialogueLine("Chằn Tinh", "THẠCH SANH!!! Ngươi thật sự đến được tận đây?! Ta phải thừa nhận, ngươi đã hạ được tất cả lính canh của ta. Nhưng đây là sào huyệt của ta, ngươi nghĩ sẽ thoát được sao!", null, "res://Assets/Audio/Voices/chantinh_intro.mp3")
         };
         await dm.PlayDialogue(lines);
 
@@ -588,7 +592,7 @@ public partial class LevelManager : Node2D
         particles.ScaleAmountMin = 4f;
         particles.ScaleAmountMax = 10f;
         particles.Color = new Color(0.45f, 0.35f, 0.25f);
-        
+
         AddChild(particles);
         particles.Emitting = true;
         var timer = GetTree().CreateTimer(2.0f);
