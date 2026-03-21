@@ -91,6 +91,35 @@ public partial class Level2Builder : Node2D
         floor.Material = mat;
         floor.SelfModulate = new Color(0.8f, 0.8f, 0.9f); // Lighter ground for better visibility
         AddChild(floor);
+        
+        // Add Slowdown Area for Floor (Speckled Ground)
+        var slowArea = new Area2D();
+        slowArea.Name = "GroundSlowArea";
+        slowArea.CollisionLayer = 0;
+        slowArea.CollisionMask = 1; // Player
+        
+        var slowShape = new CollisionShape2D();
+        slowShape.Shape = new RectangleShape2D { Size = floor.RegionRect.Size };
+        slowArea.Position = floor.Position;
+        slowArea.AddChild(slowShape);
+        AddChild(slowArea);
+
+        slowArea.BodyEntered += (body) => {
+            if (body is IsometricPlayer player) {
+                float currentSpeed = (float)player.Get("Speed");
+                player.Set("Speed", currentSpeed * 0.5f);
+                // Only tint if NOT on a path
+                if (!player.HasMeta("on_path"))
+                    player.Modulate = new Color(0.8f, 0.8f, 1.0f);
+            }
+        };
+        slowArea.BodyExited += (body) => {
+            if (body is IsometricPlayer player) {
+                float currentSpeed = (float)player.Get("Speed");
+                player.Set("Speed", currentSpeed * 2.0f);
+                player.Modulate = Colors.White;
+            }
+        };
 
         // Define 3 Main Branches
         Vector2[][] branches = new Vector2[][] {
@@ -114,7 +143,55 @@ public partial class Level2Builder : Node2D
             path.JointMode = Line2D.LineJointMode.Round;
             AddChild(path);
 
-            // Path lighting was removed to focus on Player-Centric light only
+            // Add Fast Area for the Path
+            var fastArea = new Area2D();
+            fastArea.CollisionLayer = 0;
+            fastArea.CollisionMask = 1; // Player
+            
+            // Create collision shapes for each segment of the path
+            for (int i = 0; i < points.Length - 1; i++)
+            {
+                var segment = new CollisionShape2D();
+                var shape = new CapsuleShape2D();
+                Vector2 p1 = points[i];
+                Vector2 p2 = points[i+1];
+                float dist = p1.DistanceTo(p2);
+                shape.Radius = 70f; // Half of path width
+                shape.Height = dist + 140f; 
+                segment.Shape = shape;
+                segment.Position = (p1 + p2) / 2f;
+                segment.Rotation = (p2 - p1).Angle() + Mathf.Pi / 2f;
+                fastArea.AddChild(segment);
+            }
+            AddChild(fastArea);
+
+            fastArea.BodyEntered += (body) => {
+                if (body is IsometricPlayer player) {
+                    int count = player.HasMeta("on_path") ? (int)player.GetMeta("on_path") : 0;
+                    count++;
+                    player.SetMeta("on_path", count);
+                    
+                    if (count == 1) {
+                        float currentSpeed = (float)player.Get("Speed");
+                        player.Set("Speed", currentSpeed * 2.0f); // Fast (back to 1.0)
+                        player.Modulate = Colors.White; // Normal color on path
+                    }
+                }
+            };
+            fastArea.BodyExited += (body) => {
+                if (body is IsometricPlayer player) {
+                    int count = player.HasMeta("on_path") ? (int)player.GetMeta("on_path") : 0;
+                    count--;
+                    if (count <= 0) {
+                        player.RemoveMeta("on_path");
+                        float currentSpeed = (float)player.Get("Speed");
+                        player.Set("Speed", currentSpeed * 0.5f); // Slow again
+                        player.Modulate = new Color(0.8f, 0.8f, 1.0f);
+                    } else {
+                        player.SetMeta("on_path", count);
+                    }
+                }
+            };
         }
     }
 
@@ -271,8 +348,8 @@ public partial class Level2Builder : Node2D
     {
         if (_snakeScene == null || _eagleScene == null) return;
 
-        // Sinh lính canh đa dạng cho Màn 2
-        for (int i = 0; i < 12; i++)
+        // Sinh lính canh cố định cho Màn 2: Tổng cộng 15 con
+        for (int i = 0; i < 9; i++)
         {
             Vector2 pos = new Vector2(_rng.Next(400, (int)MAP_WIDTH - 400), _rng.Next(150, (int)MAP_HEIGHT - 150));
             var snake = _snakeScene.Instantiate<CharacterBody2D>();
@@ -280,7 +357,7 @@ public partial class Level2Builder : Node2D
             AddChild(snake);
         }
 
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 6; i++)
         {
             Vector2 pos = new Vector2(_rng.Next(600, (int)MAP_WIDTH - 600), _rng.Next(100, (int)MAP_HEIGHT - 300));
             var eagle = _eagleScene.Instantiate<CharacterBody2D>();
@@ -288,7 +365,7 @@ public partial class Level2Builder : Node2D
             AddChild(eagle);
         }
         
-        GD.Print($"[Level2Builder] Restored all guarding enemies ({12} snakes, {8} eagles)");
+        GD.Print($"[Level2Builder] Spawned exactly 15 enemies (9 snakes, 6 eagles).");
     }
 
     private Vector2[][] GetBranches()
@@ -305,14 +382,11 @@ public partial class Level2Builder : Node2D
 
     private void BuildRollingRockTraps()
     {
-        // Pick 2 out of 3 lanes to have rolling rocks
-        var allLanes = new List<int> { 0, 1, 2 };
-        for (int i = 0; i < 2; i++)
-        {
-            int idx = _rng.Next(allLanes.Count);
-            _rollingLanes.Add(allLanes[idx]);
-            allLanes.RemoveAt(idx);
-        }
+        // NO RANDOM: Enable rolling rocks in ALL 3 lanes (0, 1, 2)
+        _rollingLanes.Clear();
+        _rollingLanes.Add(0);
+        _rollingLanes.Add(1);
+        _rollingLanes.Add(2);
 
         // Place triggers along the paths (Layer 2 for CharacterBody2D)
         foreach (int laneIdx in _rollingLanes)
@@ -390,7 +464,7 @@ public partial class Level2Builder : Node2D
         if (_exitScene == null) return;
         var exit = _exitScene.Instantiate<LevelExit>();
         exit.Position = new Vector2(3850, 500);
-        exit.Scale = new Vector2(3.0f, 3.0f); // Phóng to gấp 3 lần để vừa 2 bên đá
+        exit.Scale = new Vector2(2.0f, 2.0f); // Phóng to gấp 3 lần để vừa 2 bên đá
         exit.Name = "LevelExit";
         AddChild(exit);
 
@@ -400,7 +474,7 @@ public partial class Level2Builder : Node2D
         {
             var chest = chestScene.Instantiate<TreasureChest>();
             chest.RequireAllEnemiesDefeated = true;
-            chest.GlobalPosition = new Vector2(3750, 520); // Gần lối ra Map 3
+            chest.GlobalPosition = new Vector2(3650, 520); // Di chuyển về chỗ người chơi đứng
             
             // Thêm vào levelBuilder để Y-sort
             var levelBuilderNode = GetNodeOrNull<Node2D>("LevelBuilder");

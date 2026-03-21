@@ -371,11 +371,10 @@ public partial class TreasureChest : Area2D
                 }
                 else if (GameManager.Instance.CurrentLevel == 2)
                 {
-                    // Màn 2: Mở khóa kỹ năng thứ 3 (Skill L)
-                    GameManager.Instance.UnlockedSkillsCount = 3;
+                    // Màn 2: Chỉ nhận chìa khóa, không nhận kỹ năng mới (theo yêu cầu user)
                     GameManager.Instance.TotalKeys++;
 
-                    // Hiện popup mô tả cho kỹ năng L
+                    // Hiện popup nhận chìa khóa
                     PlayDialogueAndShowPopups(player, 2);
                     
                     // Kích hoạt cổng thoát Map 2
@@ -386,7 +385,7 @@ public partial class TreasureChest : Area2D
                     }
 
                     if (player.HasMethod("RefreshSkillUI")) player.Call("RefreshSkillUI");
-                    GD.Print("Màn 2: Nhận kỹ năng L và đã mở cửa hang Map 2.");
+                    GD.Print("Màn 2: Đã nhận chìa khóa và mở cổng thoát.");
                 }
                 else if (GameManager.Instance.CurrentLevel == 3)
                 {
@@ -423,11 +422,10 @@ public partial class TreasureChest : Area2D
         }
         else if (level == 2)
         {
-            lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Lại là rương này… Ngọc Hoàng còn ban thêm sức mạnh cho ta?.", null, "res://Assets/Audio/Voices/ts_m2_god1.mp3"));
-            lines.Add(new DialogueManager.DialogueLine("Ngọc Hoàng", "Thạch Sanh! Ngươi vừa một mình đương đầu với cả bầy rắn lẫn bầy đại bàng. Trời đất cảm phục sự kiên cường đó. Nhưng phía trước còn một thử thách lớn hơn đang chờ ngươi. Hãy nhận lấy binh pháp cuối cùng này, ta ban cho ngươi để hạ con yêu quái trong kia!", null, "res://Assets/Audio/Voices/god_m2_reward.mp3"));
-            lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Ta đã nhận được sức mạnh khổng lồ. Chằn tinh, ngươi chịu thua đi.... .", null, "res://Assets/Audio/Voices/ts_m2_god2.mp3"));
+            lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Lại là rương này… Phải chăng đây là chìa khóa để mở cổng sâu hơn?.", null, "res://Assets/Audio/Voices/ts_m2_god1.mp3"));
+            lines.Add(new DialogueManager.DialogueLine("Ngọc Hoàng", "Thạch Sanh! Ngươi đã rất dũng cảm. Cửa hang phía trước rất kiên cố, hãy dùng chiếc chìa khóa này để tiến vào sào huyệt của Chằn Tinh!", null, "res://Assets/Audio/Voices/god_m2_reward.mp3"));
             lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Con đã hiểu. Con sẽ phá cổng tối, diệt yêu tà, rồi đưa công chúa trở về.", null, "res://Assets/Audio/Voices/ts_m2_god3.mp3"));
-            lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Bầy rắn, bầy đại bàng, tất cả đã bị hạ. Hình như có Tiếng gầm từ phía trong… phải chăng là tiếng của Chằn tinh. Nhưng ta đã có đủ sức mạnh rồi, tiến lên thôi.", null, "res://Assets/Audio/Voices/ts_m2_end.mp3"));
+            lines.Add(new DialogueManager.DialogueLine("Thạch Sanh", "Bầy rắn, bầy đại bàng, tất cả đã bị hạ. Hình như có Tiếng gầm từ phía trong… phải chăng là tiếng của Chằn tinh. Tiến lên thôi!", null, "res://Assets/Audio/Voices/ts_m2_end.mp3"));
         }
         else if (level == 3)
         {
@@ -664,7 +662,14 @@ public partial class TreasureChest : Area2D
         {
             if (_popupSlide == 1)
             {
-                ShowSkillCard("L");
+                _popupContentLabel.Visible = true;
+                _popupInfographic.Visible = false;
+
+                string storyText = "CHÌA KHÓA THỨ 2!\n\nHào quang của chiếc chìa khóa này thật mạnh mẽ.\nBạn đã cảm nhận được luồng khí lạnh lẽo từ hang sâu tỏa ra chưa?\n\n[ Bạn đã có: 2 / 3 ]\nChỉ còn một bước nữa thôi!";
+                _popupContentLabel.Text = storyText;
+                _popupContentLabel.AddThemeColorOverride("font_color", new Color(0.25f, 0.15f, 0.05f));
+
+                RunTypewriter(storyText.Length);
             }
         }
         else if (GameManager.Instance.CurrentLevel == 3)
