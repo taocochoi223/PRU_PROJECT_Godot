@@ -3,13 +3,13 @@ using System;
 
 public partial class IsometricPlayer : CharacterBody2D
 {
-    [Export] public float Speed = 250.0f;
-    [Export] public float Acceleration = 1500.0f;
-    [Export] public float Friction = 1200.0f;
+    [Export] public float Speed = 380.0f;
+    [Export] public float Acceleration = 2500.0f;
+    [Export] public float Friction = 2000.0f;
 
     // Fake Z-axis (Jump Logic)
-    [Export] public float JumpForce = 350.0f;
-    [Export] public float GravityForce = 1200.0f;
+    [Export] public float JumpForce = 420.0f;
+    [Export] public float GravityForce = 1000.0f;
 
     // Combat
     [Export] public int MaxHealth = 150;

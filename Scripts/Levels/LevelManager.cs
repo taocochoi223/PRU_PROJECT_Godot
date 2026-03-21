@@ -20,7 +20,7 @@ public partial class LevelManager : Node2D
     private bool _level3BossSpawned = false;
     private bool _bossFightStarted = false;
     private bool _level3BossCleanupDone = false;
-    private Vector2 _bossArenaEntrance = new Vector2(2350, 580);
+    private Vector2 _bossArenaEntrance = new Vector2(2500, 500);
     private StaticBody2D _princessBarrier;
     private TreasureChest _level1RewardChest;
 
@@ -244,24 +244,58 @@ public partial class LevelManager : Node2D
 
     private void SetupLevel3()
     {
-        _princess = GetNodeOrNull<Node2D>("Princess");
-        _cage = GetNodeOrNull<Node2D>("BossCage");
-        _boss = GetNodeOrNull<Node2D>("ChanTinh");
+        var builder = GetNodeOrNull("LevelBuilder");
+        if (builder != null)
+        {
+            _princess = builder.GetNodeOrNull<Node2D>("Princess");
+            _cage = builder.GetNodeOrNull<Node2D>("BossCage");
+            _boss = builder.GetNodeOrNull<Node2D>("ChanTinh");
+        }
+        else
+        {
+            _princess = GetNodeOrNull<Node2D>("LevelBuilder/Princess");
+            _cage = GetNodeOrNull<Node2D>("LevelBuilder/BossCage");
+            _boss = GetNodeOrNull<Node2D>("LevelBuilder/ChanTinh");
+            GD.Print($"[LevelManager] SetupLevel3: Princess found? {_princess != null}, Cage found? {_cage != null}, Boss found? {_boss != null}");
+        }
 
-        if (_princess != null) _princess.Visible = false;
-        if (_cage != null) _cage.Visible = false;
+        // Princess and Cage should be visible from start in Level 3 as per user request
+        if (_princess != null) 
+        {
+            _princess.Visible = true;
+            GD.Print("[LevelManager] Force showing Princess");
+        }
+        if (_cage != null)
+        {
+            _cage.Visible = true;
+            if (_cage.HasNode("Hint"))
+            {
+                var hint = _cage.GetNode<Label>("Hint");
+                hint.Text = "Bạn cần Chìa Khóa của Chằn Tinh để mở lồng!";
+                hint.Visible = true;
+            }
+        }
+
+        // RESET TRẠNG THÁI CHÌA KHÓA KHI VÀO MÀN 3
+        GameManager.Instance.HasBossKey = false;
+        GD.Print("[LevelManager] Reset HasBossKey to FALSE for Level 3");
         if (_boss != null)
         {
             _boss.Visible = false;
             _boss.ProcessMode = ProcessModeEnum.Disabled;
             // Đưa boss lên trời chờ sẵn
-            _boss.GlobalPosition = new Vector2(500, -500); 
+            _boss.GlobalPosition = new Vector2(3300, -500); 
         }
     }
 
     private void SetupLevel3Atmosphere()
     {
-        foreach (var child in GetChildren())
+        _fireflies.Clear();
+        _fogLayers.Clear();
+
+        Node searchRoot = GetNodeOrNull("LevelBuilder") ?? (Node)this;
+
+        foreach (var child in searchRoot.GetChildren())
         {
             if (child is ColorRect cr)
             {
@@ -348,9 +382,9 @@ public partial class LevelManager : Node2D
             {
                 _princessBarrier.QueueFree();
                 _princessBarrier = null;
-                var cam = GetTree().GetFirstNodeInGroup("MainCamera") as FollowCamera;
-                if (cam != null) cam.LimitRight = 5000;
             }
+            var cam = GetTree().GetFirstNodeInGroup("MainCamera") as FollowCamera;
+            if (cam != null && cam.LimitRight < 5000) cam.LimitRight = 5000;
 
             if (!_level3BossCleanupDone)
             {
@@ -374,7 +408,7 @@ public partial class LevelManager : Node2D
     private void CreatePrincessBarrier()
     {
         _princessBarrier = new StaticBody2D();
-        _princessBarrier.Position = new Vector2(3320, 400);
+        _princessBarrier.Position = new Vector2(4200, 500);
         _princessBarrier.CollisionLayer = 2;
         var shape = new CollisionShape2D();
         shape.Shape = new RectangleShape2D { Size = new Vector2(40, 1000) };
@@ -387,11 +421,11 @@ public partial class LevelManager : Node2D
         var cam = GetTree().GetFirstNodeInGroup("MainCamera") as FollowCamera;
         if (cam != null)
         {
-            cam.LimitLeft = 2350;
-            cam.LimitRight = 3502;
+            cam.LimitLeft = 2400;
+            cam.LimitRight = 4200;
         }
         var wall = new StaticBody2D();
-        wall.Position = new Vector2(2350, 400);
+        wall.Position = new Vector2(2400, 500);
         wall.CollisionLayer = 2;
         wall.CollisionMask = 1;
         var shape = new CollisionShape2D();
@@ -495,8 +529,8 @@ public partial class LevelManager : Node2D
 
         // 1. Vị trí đáp xuống trước mặt người chơi
         Vector2 spawnPos = _player.GlobalPosition + new Vector2(250, 0); 
-        // Đảm bảo ở vị trí mặt đất hợp lý (Level 3 ground surface is at ~590)
-        spawnPos.Y = 590; 
+        // Đảm bảo ở vị trí mặt đất hợp lý cho Isometric Arena
+        spawnPos.Y = 520; 
 
         _boss.GlobalPosition = spawnPos + new Vector2(0, -800);
         _boss.Visible = true;

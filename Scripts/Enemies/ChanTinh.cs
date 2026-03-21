@@ -243,7 +243,7 @@ public partial class ChanTinh : BaseEnemy
         else
         {
             // Trong Isometric (Level 2), đuổi theo 2D (X, Y)
-            if (GameManager.Instance.CurrentLevel == 2)
+            if (GameManager.Instance.CurrentLevel >= 2) // Level 2 and Level 3 are Isometric
             {
                 Vector2 dirVec = (TargetPlayer.GlobalPosition - GlobalPosition).Normalized();
                 Velocity = dirVec * MoveSpeed;
@@ -591,9 +591,9 @@ public partial class ChanTinh : BaseEnemy
     private void ApplyGravityAndMove(float dt)
     {
         Vector2 vel = Velocity;
-        // Chỉ áp dụng trọng lực ở các màn Side-scroller (Level 1, 3). 
-        // Level 2 là Isometric (giả 2.5D) nên không có trọng lực rơi tự do trên Y.
-        if (GameManager.Instance.CurrentLevel != 2)
+        // Chỉ áp dụng trọng lực ở các màn Side-scroller. 
+        // Level 2, 3 là Isometric (giả 2.5D) nên không có trọng lực rơi tự do trên Y.
+        if (GameManager.Instance.CurrentLevel < 2) 
         {
             if (!IsOnFloor()) vel.Y += Gravity * dt;
         }
@@ -683,7 +683,7 @@ public partial class ChanTinh : BaseEnemy
             GD.Print("[ChanTinh] Holding final death frame.");
         }
 
-        // 4. RƠI RƯƠNG BÁU (Thay vì rơi chìa khóa trực tiếp)
+        // 4. RƠI RƯƠNG BÁU (Chứa chìa khóa để cứu Công Chúa)
         SpawnChest();
 
         // 5. Đợi một chút trước khi biến mất (Giảm xuống 1s như yêu cầu)
@@ -700,6 +700,12 @@ public partial class ChanTinh : BaseEnemy
             Engine.TimeScale = 1.0f;
             QueueFree();
         }
+    }
+
+    private void SpawnLoot()
+    {
+        GameManager.Instance.HasBossKey = true;
+        GD.Print("BẠN ĐÃ NHẬN ĐƯỢC CHÌA KHÓA CỦA CHẰN TINH!");
     }
 
     private void SpawnChest()

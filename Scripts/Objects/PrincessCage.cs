@@ -64,13 +64,34 @@ public partial class PrincessCage : StaticBody2D
         label.Scale = new Vector2(1.2f, 1.2f);
         label.Visible = false;
         AddChild(label);
+
+        // --- FIX VA CHẠM LỒNG SẮT ĐỂ KHÔNG BỊ "LÁCH" VÀO ---
+        // Tìm hoặc tạo mới CollisionShape2D cho StaticBody2D
+        var col = GetNodeOrNull<CollisionShape2D>("CollisionShape2D");
+        if (col == null) 
+        {
+            col = new CollisionShape2D();
+            col.Name = "CollisionShape2D";
+            AddChild(col);
+        }
+        
+        // Kích thước va chạm phải bao trùm toàn bộ diện tích lồng (140x180)
+        var rect = new RectangleShape2D();
+        rect.Size = new Vector2(140, 180);
+        col.Shape = rect;
+        col.Position = new Vector2(0, -90); // Tâm của 180px height
+        col.SetDeferred("disabled", false);
+        
+        // Đảm bảo Layer = 2 (Environment) để cản Player
+        CollisionLayer = 2;
+        CollisionMask = 1;
     }
 
     private void OnPlayerEntered(Node2D body)
     {
         if (_isOpened) return;
 
-        if (body is Player)
+        if (body.IsInGroup("player"))
         {
             if (GameManager.Instance.HasBossKey)
             {
@@ -78,7 +99,9 @@ public partial class PrincessCage : StaticBody2D
             }
             else
             {
-                GetNode<Label>("Hint").Visible = true;
+                var hint = GetNode<Label>("Hint");
+                hint.Text = "Bạn cần Chìa Khóa của Chằn Tinh để mở lồng!";
+                hint.Visible = true;
                 var timer = GetTree().CreateTimer(2.0);
                 timer.Timeout += () => GetNode<Label>("Hint").Visible = false;
             }
