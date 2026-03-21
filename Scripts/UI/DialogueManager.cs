@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 
 public partial class DialogueManager : CanvasLayer
@@ -107,8 +108,9 @@ public partial class DialogueManager : CanvasLayer
     private async Task ShowLine(DialogueLine line)
     {
         _nameLabel.Text = line.CharacterName;
-        _textLabel.Text = line.Text;
-        _textLabel.VisibleCharacters = 0;
+        string fullText = line.Text ?? string.Empty;
+        _textLabel.Text = string.Empty;
+        _textLabel.VisibleCharacters = -1;
 
         // Đổi màu tên tùy vào nhân vật
         if (line.CharacterName == "Thạch Sanh")
@@ -146,19 +148,21 @@ public partial class DialogueManager : CanvasLayer
         _isTyping = true;
         _skipTypingRequested = false;
 
-        int totalChars = line.Text.Length;
+        int[] textElementIndexes = StringInfo.ParseCombiningCharacters(fullText);
+        int totalTextElements = textElementIndexes.Length;
         float timePerChar = 0.035f; // Tốc độ gõ chữ (càng nhỏ càng nhanh)
 
-        for (int i = 0; i <= totalChars; i++)
+        for (int i = 0; i <= totalTextElements; i++)
         {
             // Bấm bỏ qua thì nhảy hết chữ
             if (_skipTypingRequested)
             {
-                _textLabel.VisibleCharacters = totalChars;
+                _textLabel.Text = fullText;
                 break;
             }
 
-            _textLabel.VisibleCharacters = i;
+            int visibleLength = i >= totalTextElements ? fullText.Length : textElementIndexes[i];
+            _textLabel.Text = fullText.Substring(0, visibleLength);
 
             // processAlways=true, ignoreTimeScale=true để chạy lúc Pause
             await ToSignal(GetTree().CreateTimer(timePerChar, true, false, true), SceneTreeTimer.SignalName.Timeout);
